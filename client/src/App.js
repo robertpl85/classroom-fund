@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "./api";
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isMobile;
+}
+
 const CATEGORIES = ["Holiday", "Craft", "Snacks", "Field Trip", "Birthday", "General", "Other"];
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -39,6 +49,7 @@ const Icon = ({ name, size = 18 }) => {
 
 // ─── Main App ────────────────────────────────────────────────────────────────
 export default function App() {
+  const isMobile = useIsMobile();
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading]         = useState(true);
   const [view, setView]               = useState("dashboard");
@@ -55,15 +66,12 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // Fetch class name on mount (public endpoint)
   useEffect(() => {
     api.getClassName().then(({ value }) => setClassName(value)).catch(() => {});
   }, []);
 
-  // Keep browser tab title in sync
   useEffect(() => { document.title = `${className} – Class Fund Manager`; }, [className]);
 
-  // Try to restore session on load
   useEffect(() => {
     const token = localStorage.getItem("cf_token");
     if (!token) { setLoading(false); return; }
@@ -76,7 +84,6 @@ export default function App() {
     });
   }, []);
 
-  // Load data when logged in
   const loadAll = useCallback(async () => {
     if (!currentUser) return;
     try {
@@ -127,10 +134,11 @@ export default function App() {
           {toast.msg}
         </div>
       )}
+      {isMobile && <MobileTopBar currentUser={currentUser} className={className} onLogout={handleLogout} />}
       <Sidebar currentUser={currentUser} view={view} setView={setView}
         pendingCount={currentUser.role === "admin" ? pendingCount : 0}
-        onLogout={handleLogout} className={className} />
-      <main style={S.main}>
+        onLogout={handleLogout} className={className} isMobile={isMobile} />
+      <main style={{ ...S.main, ...(isMobile ? { paddingTop: 56, paddingBottom: 70 } : {}) }}>
         {view === "dashboard" && (
           <Dashboard summary={summary} students={students} expenses={expenses}
             currentUser={currentUser} setView={setView} onRefresh={loadAll} />
@@ -165,6 +173,39 @@ function Spinner() {
         <p style={{ color:"#6b7280", fontFamily:"Nunito,sans-serif" }}>Loading…</p>
       </div>
     </div>
+  );
+}
+
+// ─── Mobile Top Bar ───────────────────────────────────────────────────────────
+function MobileTopBar({ currentUser, className, onLogout }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <>
+      <div style={S.mobileTopBar}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:30, height:30, borderRadius:6, objectFit:"cover" }} />
+          <span style={{ color:"#fff", fontWeight:800, fontSize:15, lineHeight:1.2 }}>{className}</span>
+        </div>
+        <button onClick={() => setMenuOpen(!menuOpen)}
+          style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
+          <div style={{ ...S.avatar, width:34, height:34, fontSize:14 }}>{currentUser.name[0]}</div>
+        </button>
+      </div>
+      {menuOpen && (
+        <div style={S.mobileUserMenu}>
+          <div style={{ padding:"12px 16px", borderBottom:"1px solid #f3f4f6" }}>
+            <div style={{ fontWeight:700, color:"#111827", fontSize:14 }}>{currentUser.name}</div>
+            <div style={{ color:"#6b7280", fontSize:12 }}>{currentUser.email}</div>
+            <div style={{ color:"#6366f1", fontSize:12, fontWeight:600, marginTop:2 }}>
+              {currentUser.role === "admin" ? "★ Admin" : "Classroom Mom"}
+            </div>
+          </div>
+          <button style={S.mobileMenuLogout} onClick={() => { setMenuOpen(false); onLogout(); }}>
+            <Icon name="logout" size={16}/> Sign Out
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -225,7 +266,7 @@ function LoginScreen({ onLogin, className }) {
 }
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
-function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className }) {
+function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className, isMobile }) {
   const navItems = [
     { id:"dashboard", label:"Dashboard", icon:"home" },
     { id:"students",  label:"Students",  icon:"users" },
@@ -235,6 +276,25 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
       { id:"accounts",  label:"Accounts",  icon:"shield" },
     ] : []),
   ];
+
+  if (isMobile) {
+    return (
+      <nav style={S.bottomNav}>
+        {navItems.map(item => (
+          <button key={item.id}
+            style={{ ...S.bottomNavItem, ...(view===item.id ? S.bottomNavActive : {}) }}
+            onClick={() => setView(item.id)}>
+            <div style={{ position:"relative" }}>
+              <Icon name={item.icon} size={22}/>
+              {item.badge > 0 && <span style={S.bottomNavBadge}>{item.badge}</span>}
+            </div>
+            <span style={{ fontSize:10, marginTop:2, fontWeight:600 }}>{item.label}</span>
+          </button>
+        ))}
+      </nav>
+    );
+  }
+
   return (
     <aside style={S.sidebar}>
       <div>
@@ -274,14 +334,15 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 function Dashboard({ summary, students, expenses, currentUser, setView, onRefresh }) {
-  const paidCount     = students.filter(s => s.paid).length;
+  const isMobile = useIsMobile();
+  const paidCount      = students.filter(s => s.paid).length;
   const recentExpenses = [...expenses].slice(0, 5);
 
   return (
-    <div style={S.page}>
-      <div style={S.pageHeader}>
+    <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
+      <div style={{ ...S.pageHeader, ...(isMobile ? { marginBottom:16 } : {}) }}>
         <div>
-          <h2 style={S.pageTitle}>Dashboard</h2>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Dashboard</h2>
           <p style={S.pageSubtitle}>Welcome back, {currentUser.name.split(" ")[0]}!</p>
         </div>
         <button style={S.btnSecondary} onClick={onRefresh}>
@@ -289,11 +350,11 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
         </button>
       </div>
 
-      <div style={S.statsGrid}>
-        <StatCard icon="dollar" label="Current Balance"  value={`$${summary.balance.toFixed(2)}`}       color="#6366f1" bg="#eef2ff" note="Available funds" />
-        <StatCard icon="check"  label="Total Collected"  value={`$${summary.total_collected.toFixed(2)}`} color="#10b981" bg="#ecfdf5" note={`${paidCount} of ${students.length} paid`} />
-        <StatCard icon="list"   label="Total Spent"      value={`$${summary.total_spent.toFixed(2)}`}    color="#f59e0b" bg="#fffbeb" note="Approved expenses" />
-        <StatCard icon="users"  label="Class Size"       value={students.length}                          color="#8b5cf6" bg="#f5f3ff" note={`${students.length-paidCount} payments pending`} />
+      <div style={{ ...S.statsGrid, gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: isMobile ? 10 : 16 }}>
+        <StatCard icon="dollar" label="Balance"       value={`$${summary.balance.toFixed(2)}`}           color="#6366f1" bg="#eef2ff" note="Available funds" />
+        <StatCard icon="check"  label="Collected"     value={`$${summary.total_collected.toFixed(2)}`}   color="#10b981" bg="#ecfdf5" note={`${paidCount}/${students.length} paid`} />
+        <StatCard icon="list"   label="Spent"         value={`$${summary.total_spent.toFixed(2)}`}       color="#f59e0b" bg="#fffbeb" note="Approved expenses" />
+        <StatCard icon="users"  label="Class Size"    value={students.length}                             color="#8b5cf6" bg="#f5f3ff" note={`${students.length-paidCount} unpaid`} />
       </div>
 
       {currentUser.role==="admin" && summary.pending_count > 0 && (
@@ -304,7 +365,7 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
         </div>
       )}
 
-      <div style={S.twoCol}>
+      <div style={{ ...S.twoCol, gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr" }}>
         <div style={S.card}>
           <h3 style={S.cardTitle}>Recent Expenses</h3>
           {recentExpenses.length===0 ? <p style={S.empty}>No expenses yet.</p> : recentExpenses.map(e => (
@@ -366,6 +427,7 @@ function StatCard({ icon, label, value, color, bg, note }) {
 
 // ─── Students Panel ───────────────────────────────────────────────────────────
 function StudentsPanel({ students, currentUser, showToast, reload }) {
+  const isMobile = useIsMobile();
   const [search, setSearch]   = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [editSt, setEditSt]   = useState(null);
@@ -409,19 +471,21 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
   };
 
   return (
-    <div style={S.page}>
-      <div style={S.pageHeader}>
+    <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
+      <div style={{ ...S.pageHeader, ...(isMobile ? { marginBottom:14 } : {}) }}>
         <div>
-          <h2 style={S.pageTitle}>Students</h2>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Students</h2>
           <p style={S.pageSubtitle}>{students.length} students · {students.filter(s=>s.paid).length} paid</p>
         </div>
         {currentUser.role==="admin" && (
-          <button style={S.btnPrimary} onClick={openAdd}><Icon name="plus" size={16}/> Add Student</button>
+          <button style={S.btnPrimary} onClick={openAdd}>
+            <Icon name="plus" size={16}/>{isMobile ? "" : " Add Student"}
+          </button>
         )}
       </div>
 
-      <div style={S.filterBar}>
-        <input style={{ ...S.input, maxWidth:280 }} placeholder="Search by name or email…"
+      <div style={{ ...S.filterBar, marginBottom:12 }}>
+        <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder="Search…"
           value={search} onChange={e => setSearch(e.target.value)}/>
         <div style={S.filterBtns}>
           {["all","paid","unpaid"].map(f => (
@@ -431,54 +495,92 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
         </div>
       </div>
 
-      <div style={S.card}>
-        <table style={S.table}>
-          <thead>
-            <tr style={S.thead}>
-              <th style={S.th}>Student</th>
-              <th style={S.th}>Parent Email</th>
-              <th style={S.th}>Phone</th>
-              <th style={S.th}>Amount</th>
-              <th style={S.th}>Status</th>
-              {currentUser.role==="admin" && <th style={S.th}>Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(s => (
-              <tr key={s.id} style={S.trow}>
-                <td style={S.td}>
-                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <div style={{ ...S.miniAvatar, background:s.paid?"#d1fae5":"#fee2e2", color:s.paid?"#065f46":"#991b1b" }}>
-                      {s.name[0]}
-                    </div>
-                    <span style={S.studentName}>{s.name}</span>
+      {isMobile ? (
+        <div>
+          {filtered.length===0 ? (
+            <p style={S.empty}>No students found.</p>
+          ) : filtered.map(s => (
+            <div key={s.id} style={S.studentCard}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+                <div style={{ display:"flex", gap:10, alignItems:"center", flex:1, minWidth:0 }}>
+                  <div style={{ ...S.miniAvatar, width:36, height:36, fontSize:15, background:s.paid?"#d1fae5":"#fee2e2", color:s.paid?"#065f46":"#991b1b", flexShrink:0 }}>
+                    {s.name[0]}
                   </div>
-                </td>
-                <td style={S.td}><span style={S.meta}>{s.parent_email}</span></td>
-                <td style={S.td}><span style={S.meta}>{s.parent_phone||"—"}</span></td>
-                <td style={S.td}><strong>${parseFloat(s.amount).toFixed(2)}</strong></td>
-                <td style={S.td}>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ ...S.studentName, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</div>
+                    <div style={{ ...S.expenseMeta, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.parent_email}</div>
+                    {s.parent_phone && <div style={S.expenseMeta}>{s.parent_phone}</div>}
+                  </div>
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6, flexShrink:0 }}>
+                  <strong style={{ fontSize:14 }}>${parseFloat(s.amount).toFixed(2)}</strong>
                   {currentUser.role==="admin" ? (
                     <button style={{ ...S.statusToggle, ...(s.paid ? S.paidBtn : S.unpaidBtn) }}
                       onClick={() => togglePaid(s)}>
                       {s.paid ? "✓ Paid" : "○ Unpaid"}
                     </button>
                   ) : <StatusChip status={s.paid?"paid":"unpaid"}/>}
-                </td>
-                {currentUser.role==="admin" && (
+                </div>
+              </div>
+              {currentUser.role==="admin" && (
+                <div style={{ display:"flex", justifyContent:"flex-end", gap:6, marginTop:10, paddingTop:10, borderTop:"1px solid #f3f4f6" }}>
+                  <button style={S.iconBtn} onClick={() => openEdit(s)}><Icon name="edit" size={15}/></button>
+                  <button style={{ ...S.iconBtn, color:"#ef4444" }} onClick={() => handleDelete(s.id)}><Icon name="trash" size={15}/></button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={S.card}>
+          <table style={S.table}>
+            <thead>
+              <tr style={S.thead}>
+                <th style={S.th}>Student</th>
+                <th style={S.th}>Parent Email</th>
+                <th style={S.th}>Phone</th>
+                <th style={S.th}>Amount</th>
+                <th style={S.th}>Status</th>
+                {currentUser.role==="admin" && <th style={S.th}>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(s => (
+                <tr key={s.id} style={S.trow}>
                   <td style={S.td}>
-                    <div style={{ display:"flex", gap:6 }}>
-                      <button style={S.iconBtn} onClick={() => openEdit(s)}><Icon name="edit" size={15}/></button>
-                      <button style={{ ...S.iconBtn, color:"#ef4444" }} onClick={() => handleDelete(s.id)}><Icon name="trash" size={15}/></button>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <div style={{ ...S.miniAvatar, background:s.paid?"#d1fae5":"#fee2e2", color:s.paid?"#065f46":"#991b1b" }}>
+                        {s.name[0]}
+                      </div>
+                      <span style={S.studentName}>{s.name}</span>
                     </div>
                   </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length===0 && <p style={S.empty}>No students found.</p>}
-      </div>
+                  <td style={S.td}><span style={S.meta}>{s.parent_email}</span></td>
+                  <td style={S.td}><span style={S.meta}>{s.parent_phone||"—"}</span></td>
+                  <td style={S.td}><strong>${parseFloat(s.amount).toFixed(2)}</strong></td>
+                  <td style={S.td}>
+                    {currentUser.role==="admin" ? (
+                      <button style={{ ...S.statusToggle, ...(s.paid ? S.paidBtn : S.unpaidBtn) }}
+                        onClick={() => togglePaid(s)}>
+                        {s.paid ? "✓ Paid" : "○ Unpaid"}
+                      </button>
+                    ) : <StatusChip status={s.paid?"paid":"unpaid"}/>}
+                  </td>
+                  {currentUser.role==="admin" && (
+                    <td style={S.td}>
+                      <div style={{ display:"flex", gap:6 }}>
+                        <button style={S.iconBtn} onClick={() => openEdit(s)}><Icon name="edit" size={15}/></button>
+                        <button style={{ ...S.iconBtn, color:"#ef4444" }} onClick={() => handleDelete(s.id)}><Icon name="trash" size={15}/></button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length===0 && <p style={S.empty}>No students found.</p>}
+        </div>
+      )}
 
       {showAdd && (
         <Modal title={editSt ? "Edit Student" : "Add Student"} onClose={() => setShowAdd(false)}>
@@ -512,6 +614,7 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
 
 // ─── Expenses Panel ───────────────────────────────────────────────────────────
 function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
+  const isMobile = useIsMobile();
   const [showAdd, setShowAdd]   = useState(false);
   const [filter, setFilter]     = useState("all");
   const [form, setForm]         = useState({ description:"", amount:"", category:"General", date:new Date().toISOString().split("T")[0] });
@@ -562,13 +665,15 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
   };
 
   return (
-    <div style={S.page}>
-      <div style={S.pageHeader}>
+    <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
+      <div style={{ ...S.pageHeader, ...(isMobile ? { marginBottom:14 } : {}) }}>
         <div>
-          <h2 style={S.pageTitle}>Expenses</h2>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Expenses</h2>
           <p style={S.pageSubtitle}>{currentUser.role==="admin" ? "All expenses" : "Your submitted expenses"}</p>
         </div>
-        <button style={S.btnPrimary} onClick={() => setShowAdd(true)}><Icon name="plus" size={16}/> Log Expense</button>
+        <button style={S.btnPrimary} onClick={() => setShowAdd(true)}>
+          <Icon name="plus" size={16}/>{isMobile ? "" : " Log Expense"}
+        </button>
       </div>
 
       {currentUser.role!=="admin" && (
@@ -578,26 +683,32 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
         </div>
       )}
 
-      <div style={{ ...S.filterBtns, marginBottom:16 }}>
-        {["all","approved","pending","rejected"].map(f => (
-          <button key={f} style={{ ...S.filterBtn, ...(filter===f ? S.filterActive : {}) }}
-            onClick={() => setFilter(f)}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
-        ))}
+      <div style={{ overflowX:"auto", marginBottom:16, paddingBottom:isMobile?4:0 }}>
+        <div style={{ ...S.filterBtns, flexWrap: isMobile ? "nowrap" : "wrap" }}>
+          {["all","approved","pending","rejected"].map(f => (
+            <button key={f} style={{ ...S.filterBtn, ...(filter===f ? S.filterActive : {}), whiteSpace:"nowrap" }}
+              onClick={() => setFilter(f)}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
+          ))}
+        </div>
       </div>
 
       <div style={S.card}>
         {filtered.length===0 ? <p style={S.empty}>No expenses found.</p> : filtered.map(e => (
           <div key={e.id} style={S.expenseRow}>
-            <div style={{ display:"flex", gap:12, alignItems:"flex-start", flex:1 }}>
-              <div style={{ ...S.catBadge, ...getCatStyle(e.category) }}>
-                <Icon name="tag" size={13}/> {e.category}
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={S.expenseDesc}>{e.description}</div>
-                <div style={S.expenseMeta}>{e.date?.slice(0,10)}{e.status==="approved" ? " · Reimbursed ✓" : ""}</div>
+            <div style={{ display:"flex", gap:isMobile?8:12, alignItems:"flex-start", flex:1, minWidth:0 }}>
+              {!isMobile && (
+                <div style={{ ...S.catBadge, ...getCatStyle(e.category), flexShrink:0 }}>
+                  <Icon name="tag" size={13}/> {e.category}
+                </div>
+              )}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ ...S.expenseDesc, overflow:"hidden", textOverflow:"ellipsis", whiteSpace: isMobile?"nowrap":"normal" }}>{e.description}</div>
+                <div style={S.expenseMeta}>
+                  {isMobile ? e.category + " · " : ""}{e.date?.slice(0,10)}{e.status==="approved" ? " · ✓" : ""}
+                </div>
               </div>
             </div>
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6, flexShrink:0 }}>
               <span style={S.expenseAmt}>-${parseFloat(e.amount).toFixed(2)}</span>
               <StatusChip status={e.status}/>
               {currentUser.role==="admin" && e.status==="approved" && (
@@ -693,6 +804,7 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
 
 // ─── Approvals Panel ─────────────────────────────────────────────────────────
 function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
+  const isMobile = useIsMobile();
   const pending = expenses.filter(e => e.status==="pending");
   const history = expenses.filter(e => e.status!=="pending").sort((a,b) => new Date(b.date)-new Date(a.date));
   const [busy, setBusy] = useState(null);
@@ -711,10 +823,10 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
   };
 
   return (
-    <div style={S.page}>
+    <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
       <div style={S.pageHeader}>
         <div>
-          <h2 style={S.pageTitle}>Approvals Queue</h2>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Approvals Queue</h2>
           <p style={S.pageSubtitle}>{pending.length} pending reimbursement{pending.length!==1?"s":""}</p>
         </div>
       </div>
@@ -748,7 +860,7 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
                   <Icon name="x" size={15}/> {busy===e.id+"-reject" ? "…" : "Reject"}
                 </button>
                 <button style={{ ...S.btnApprove, opacity:busy?0.6:1 }} onClick={() => approve(e.id)} disabled={!!busy}>
-                  <Icon name="check" size={15}/> {busy===e.id+"-approve" ? "…" : "Approve & Reimburse"}
+                  <Icon name="check" size={15}/> {busy===e.id+"-approve" ? "…" : "Approve"}
                 </button>
               </div>
             </div>
@@ -781,18 +893,19 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
 
 // ─── Accounts Panel ───────────────────────────────────────────────────────────
 function AccountsPanel({ users, currentUser, showToast, reload, className, onReset }) {
+  const isMobile = useIsMobile();
   const [showAdd, setShowAdd] = useState(false);
   const [resetId, setResetId] = useState(null);
   const [form, setForm]       = useState({ name:"", email:"", password:"", role:"mom" });
   const [newPw, setNewPw]     = useState("");
   const [busy, setBusy]       = useState(false);
 
-  const [yearStep, setYearStep]       = useState(0); // 0=closed, 1=warning, 2=name, 3=confirm
+  const [yearStep, setYearStep]         = useState(0);
   const [newClassName, setNewClassName] = useState("");
-  const [confirmText, setConfirmText] = useState("");
-  const [yearBusy, setYearBusy]       = useState(false);
+  const [confirmText, setConfirmText]   = useState("");
+  const [yearBusy, setYearBusy]         = useState(false);
 
-  const openYearReset = () => { setNewClassName(className); setConfirmText(""); setYearStep(1); };
+  const openYearReset  = () => { setNewClassName(className); setConfirmText(""); setYearStep(1); };
   const closeYearReset = () => setYearStep(0);
 
   const handleYearReset = async () => {
@@ -837,31 +950,31 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
   };
 
   return (
-    <div style={S.page}>
-      <div style={S.pageHeader}>
+    <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
+      <div style={{ ...S.pageHeader, ...(isMobile ? { flexDirection:"column", alignItems:"flex-start", gap:10 } : {}) }}>
         <div>
-          <h2 style={S.pageTitle}>Accounts</h2>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Accounts</h2>
           <p style={S.pageSubtitle}>Manage classroom mom accounts</p>
         </div>
-        <div style={{ display:"flex", gap:8 }}>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           <button style={S.btnPrimary} onClick={() => setShowAdd(true)}><Icon name="plus" size={16}/> Add Account</button>
-          <button style={{ ...S.btnPrimary, background:"#ef4444" }} onClick={openYearReset}><Icon name="refresh" size={16}/> New School Year</button>
+          <button style={{ ...S.btnPrimary, background:"#ef4444" }} onClick={openYearReset}><Icon name="refresh" size={16}/> New Year</button>
         </div>
       </div>
 
       <div style={S.card}>
         {users.map(u => (
           <div key={u.id} style={S.userRow}>
-            <div style={{ display:"flex", gap:12, alignItems:"center", flex:1 }}>
+            <div style={{ display:"flex", gap:12, alignItems:"center", flex:1, minWidth:0 }}>
               <div style={S.avatar}>{u.name[0]}</div>
-              <div>
-                <div style={{ fontWeight:600, color:"#111827" }}>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontWeight:600, color:"#111827", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                   {u.name} {u.role==="admin" && <span style={S.adminTag}>Admin</span>}
                 </div>
-                <div style={S.meta}>{u.email}</div>
+                <div style={{ ...S.meta, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{u.email}</div>
               </div>
             </div>
-            <div style={{ display:"flex", gap:8 }}>
+            <div style={{ display:"flex", gap:8, flexShrink:0 }}>
               <button style={S.iconBtn} onClick={() => { setResetId(u.id); setNewPw(""); }} title="Reset Password">
                 <Icon name="key" size={15}/>
               </button>
@@ -986,9 +1099,13 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
 
 // ─── Shared ───────────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }) {
+  const isMobile = useIsMobile();
   return (
-    <div style={S.overlay}>
-      <div style={S.modal}>
+    <div style={{ ...S.overlay, ...(isMobile ? { alignItems:"flex-end", padding:0 } : {}) }}>
+      <div style={{
+        ...S.modal,
+        ...(isMobile ? { borderRadius:"16px 16px 0 0", maxWidth:"100%", maxHeight:"90vh", overflowY:"auto", padding:"20px 16px 32px" } : {})
+      }}>
         <div style={S.modalHeader}>
           <h3 style={S.modalTitle}>{title}</h3>
           <button style={S.closeBtn} onClick={onClose}><Icon name="x" size={18}/></button>
@@ -1042,20 +1159,25 @@ const S = {
   navActive:    { background:"rgba(99,102,241,0.25)", color:"#fff", borderRight:"3px solid #818cf8" },
   badge:        { background:"#f59e0b", color:"#fff", borderRadius:99, fontSize:11, fontWeight:700, minWidth:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 6px" },
   logoutBtn:    { display:"flex", alignItems:"center", gap:8, margin:"8px 12px 0", padding:"9px 14px", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:8, color:"#a5b4fc", fontSize:13, fontWeight:600, cursor:"pointer" },
+  mobileTopBar: { position:"fixed", top:0, left:0, right:0, height:56, background:"#1e1b4b", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200, boxShadow:"0 2px 8px rgba(0,0,0,0.3)" },
+  mobileUserMenu: { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(0,0,0,0.15)", zIndex:300, minWidth:220, border:"1px solid #e5e7eb" },
+  mobileMenuLogout: { display:"flex", alignItems:"center", gap:8, width:"100%", padding:"12px 16px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:14, fontWeight:600 },
+  bottomNav:    { position:"fixed", bottom:0, left:0, right:0, height:64, background:"#1e1b4b", display:"flex", alignItems:"stretch", zIndex:200, borderTop:"1px solid rgba(255,255,255,0.12)" },
+  bottomNavItem:{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.55)", padding:0, gap:2, transition:"background .15s" },
+  bottomNavActive:{ color:"#fff", background:"rgba(99,102,241,0.3)" },
+  bottomNavBadge:{ position:"absolute", top:-4, right:-8, background:"#f59e0b", color:"#fff", borderRadius:99, fontSize:10, fontWeight:700, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" },
   main:         { flex:1, overflow:"auto", background:"#f1f5f9" },
   page:         { padding:"28px 32px", maxWidth:1000, margin:"0 auto" },
   pageHeader:   { display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24, gap:16 },
   pageTitle:    { fontSize:24, fontWeight:800, color:"#1e1b4b", margin:0 },
   pageSubtitle: { color:"#6b7280", fontSize:14, marginTop:2 },
-  statsGrid:    { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 },
-  statCard:     { background:"#fff", borderRadius:12, padding:"18px 16px", boxShadow:"0 1px 3px rgba(0,0,0,.08)" },
+  card:         { background:"#fff", borderRadius:14, padding:20, marginBottom:20, boxShadow:"0 1px 4px rgba(0,0,0,.08)", border:"1px solid #e5e7eb" },
+  cardTitle:    { fontSize:15, fontWeight:800, color:"#1e1b4b", marginBottom:14, marginTop:0 },
+  statCard:     { background:"#fff", borderRadius:14, padding:18, boxShadow:"0 1px 4px rgba(0,0,0,.08)", border:"1px solid #e5e7eb" },
   statIcon:     { width:40, height:40, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:10 },
-  statValue:    { fontSize:26, fontWeight:800, color:"#1e1b4b" },
-  statLabel:    { fontSize:13, fontWeight:700, color:"#374151", marginTop:2 },
-  statNote:     { fontSize:12, color:"#9ca3af", marginTop:2 },
-  twoCol:       { display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 },
-  card:         { background:"#fff", borderRadius:12, padding:"20px", boxShadow:"0 1px 3px rgba(0,0,0,.08)", marginBottom:20 },
-  cardTitle:    { fontSize:15, fontWeight:700, color:"#1e1b4b", marginBottom:16, marginTop:0 },
+  statValue:    { fontSize:22, fontWeight:800, color:"#1e1b4b", marginBottom:2 },
+  statLabel:    { fontSize:13, fontWeight:700, color:"#374151", marginBottom:2 },
+  statNote:     { fontSize:12, color:"#9ca3af" },
   alertBox:     { background:"#fef3c7", border:"1px solid #fbbf24", borderRadius:10, padding:"12px 16px", display:"flex", alignItems:"center", gap:10, marginBottom:20, cursor:"pointer", color:"#92400e", fontWeight:600, fontSize:14 },
   alertArrow:   { marginLeft:"auto", fontWeight:700 },
   infoBox:      { background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, color:"#1d4ed8", fontSize:13, marginBottom:12 },
@@ -1080,6 +1202,7 @@ const S = {
   trow:         { borderBottom:"1px solid #f3f4f6" },
   td:           { padding:"12px 14px", fontSize:14 },
   studentName:  { fontWeight:600, color:"#111827" },
+  studentCard:  { background:"#fff", borderRadius:12, padding:"14px", marginBottom:10, boxShadow:"0 1px 3px rgba(0,0,0,.08)", border:"1px solid #e5e7eb" },
   statusToggle: { padding:"4px 12px", borderRadius:99, border:"none", cursor:"pointer", fontSize:13, fontWeight:700 },
   paidBtn:      { background:"#d1fae5", color:"#065f46" },
   unpaidBtn:    { background:"#fee2e2", color:"#991b1b" },
@@ -1111,5 +1234,7 @@ const S = {
   loginTitle:   { fontSize:26, fontWeight:800, color:"#1e1b4b", margin:0 },
   loginSub:     { color:"#6b7280", fontSize:14, marginTop:4 },
   loginHint:    { textAlign:"center", fontSize:12, color:"#9ca3af", marginTop:16 },
+  statsGrid:    { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 },
+  twoCol:       { display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 },
   toast:        { position:"fixed", top:20, right:20, color:"#fff", padding:"12px 20px", borderRadius:10, fontWeight:700, fontSize:14, zIndex:2000, boxShadow:"0 4px 20px rgba(0,0,0,.2)" },
 };
