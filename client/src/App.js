@@ -1241,8 +1241,8 @@ const S = {
   iconBtn:      { padding:7, borderRadius:7, background:"#f5f3ff", border:"none", cursor:"pointer", display:"flex", alignItems:"center", color:"#4a0080" },
 
   // ── Forms ──
-  label:        { display:"block", fontSize:13, fontWeight:700, color:"#4a0080", marginBottom:5 },
-  input:        { width:"100%", padding:"9px 12px", borderRadius:8, border:"1.5px solid #e9d5ff", fontSize:14, outline:"none", boxSizing:"border-box", background:"#fff", fontFamily:"inherit" },
+  label:        { display:"block", fontSize:14, fontWeight:600, color:"#4a0080", marginBottom:5, fontFamily:"'Playfair Display', serif" },
+  input:        { width:"100%", padding:"11px 14px", borderRadius:10, border:"1.5px solid #c084fc", fontSize:15, outline:"none", boxSizing:"border-box", background:"#faf5ff", fontFamily:"'Nunito', sans-serif", color:"#2d0057" },
   fieldGroup:   { marginBottom:14 },
   eyeBtn:       { position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"#a855f7", display:"flex", alignItems:"center" },
   errorText:    { color:"#ef4444", fontSize:13, marginBottom:12, fontWeight:600 },
@@ -1257,7 +1257,7 @@ const S = {
 
   // ── Login ──
   loginWrap:    { display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", width:"100vw", margin:0, padding:20, background:"linear-gradient(135deg, #1a0033 0%, #4a0080 40%, #7b2fbe 70%, #9d4edd 100%)", position:"relative", overflow:"hidden" },
-  loginCard:    { background:"#fff", borderRadius:18, padding:40, width:"100%", maxWidth:400, boxShadow:"0 25px 60px rgba(123,47,190,0.4)" },
+  loginCard:    { background:"#fff", borderRadius:18, padding:40, width:"100%", maxWidth:400, boxShadow:"0 25px 60px rgba(123,47,190,0.4)", borderTop:"4px solid #7b2fbe" },
   loginLogo:    { textAlign:"center", marginBottom:28 },
   loginTitle:   { fontSize:28, fontWeight:700, color:"#2d0057", margin:0, fontFamily:"'Playfair Display', serif" },
   loginSub:     { color:"#6b21a8", fontSize:14, marginTop:4, fontFamily:"'Nunito', sans-serif" },
