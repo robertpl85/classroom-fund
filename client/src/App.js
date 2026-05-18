@@ -1159,7 +1159,7 @@ const S = {
   sideUser:     { display:"flex", alignItems:"center", gap:10, padding:"12px 16px", borderBottom:"1px solid rgba(192,132,252,0.2)", marginBottom:8 },
   sideUserName: { color:"#e9d5ff", fontSize:13, fontWeight:700 },
   sideUserEmail:{ color:"#a855f7", fontSize:11 },
-  navItem:      { display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 16px", background:"none", border:"none", cursor:"pointer", color:"#c084fc", fontSize:14, fontWeight:600, textAlign:"left", transition:"background .15s" },
+  navItem:      { display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 16px", background:"none", border:"none", cursor:"pointer", color:"#e9d5ff", fontSize:14, fontWeight:600, textAlign:"left", transition:"background .15s" },
   navActive:    { background:"rgba(168,85,247,0.25)", color:"#f3e8ff", borderRight:"3px solid #a855f7" },
   badge:        { background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:11, fontWeight:700, minWidth:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 6px" },
   logoutBtn:    { display:"flex", alignItems:"center", gap:8, margin:"8px 12px 0", padding:"9px 14px", background:"rgba(168,85,247,0.15)", border:"none", borderRadius:8, color:"#c084fc", fontSize:13, fontWeight:600, cursor:"pointer" },
@@ -1169,7 +1169,7 @@ const S = {
   mobileUserMenu: { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(123,47,190,0.2)", zIndex:300, minWidth:220, border:"1px solid #e9d5ff" },
   mobileMenuLogout: { display:"flex", alignItems:"center", gap:8, width:"100%", padding:"12px 16px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:14, fontWeight:600 },
   bottomNav:      { position:"fixed", bottom:0, left:0, right:0, height:64, background:"#1e0038", display:"flex", alignItems:"stretch", zIndex:200, borderTop:"1px solid rgba(192,132,252,0.2)" },
-  bottomNavItem:  { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", color:"rgba(124,58,237,0.7)", padding:0, gap:2, transition:"background .15s" },
+  bottomNavItem:  { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", color:"#e9d5ff", padding:0, gap:2, transition:"background .15s" },
   bottomNavActive:{ color:"#c084fc", background:"rgba(168,85,247,0.25)" },
   bottomNavBadge: { position:"absolute", top:-4, right:-8, background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:10, fontWeight:700, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" },
 
