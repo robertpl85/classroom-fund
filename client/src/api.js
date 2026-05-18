@@ -42,6 +42,10 @@ export const api = {
   updateExpense:  (id, data) => request('PUT',    `/expenses/${id}`, data),
   deleteExpense:  (id)       => request('DELETE', `/expenses/${id}`),
 
+  // Settings
+  getClassName:  ()     => request('GET',  '/settings/class_name'),
+  resetYear:     (data) => request('POST', '/admin/reset', data),
+
   // Users
   getUsers:       ()        => request('GET',    '/users'),
   createUser:     (data)    => request('POST',   '/users', data),

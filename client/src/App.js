@@ -48,11 +48,20 @@ export default function App() {
   const [expenses, setExpenses]   = useState([]);
   const [users, setUsers]         = useState([]);
   const [summary, setSummary]     = useState({ balance: 0, total_collected: 0, total_spent: 0, pending_count: 0 });
+  const [className, setClassName] = useState("Pierwsza Klasa");
 
   const showToast = useCallback((msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  // Fetch class name on mount (public endpoint)
+  useEffect(() => {
+    api.getClassName().then(({ value }) => setClassName(value)).catch(() => {});
+  }, []);
+
+  // Keep browser tab title in sync
+  useEffect(() => { document.title = `${className} – Class Fund Manager`; }, [className]);
 
   // Try to restore session on load
   useEffect(() => {
@@ -98,8 +107,16 @@ export default function App() {
     setStudents([]); setExpenses([]); setUsers([]);
   };
 
+  const handleReset = (newClassName) => {
+    setClassName(newClassName);
+    setStudents([]);
+    setExpenses([]);
+    setSummary({ balance: 0, total_collected: 0, total_spent: 0, pending_count: 0 });
+    setView("dashboard");
+  };
+
   if (loading) return <Spinner />;
-  if (!currentUser) return <LoginScreen onLogin={handleLogin} />;
+  if (!currentUser) return <LoginScreen onLogin={handleLogin} className={className} />;
 
   const pendingCount = expenses.filter(e => e.status === "pending").length;
 
@@ -112,7 +129,7 @@ export default function App() {
       )}
       <Sidebar currentUser={currentUser} view={view} setView={setView}
         pendingCount={currentUser.role === "admin" ? pendingCount : 0}
-        onLogout={handleLogout} />
+        onLogout={handleLogout} className={className} />
       <main style={S.main}>
         {view === "dashboard" && (
           <Dashboard summary={summary} students={students} expenses={expenses}
@@ -132,7 +149,7 @@ export default function App() {
         )}
         {view === "accounts" && currentUser.role === "admin" && (
           <AccountsPanel users={users} currentUser={currentUser}
-            showToast={showToast} reload={loadAll} />
+            showToast={showToast} reload={loadAll} className={className} onReset={handleReset} />
         )}
       </main>
     </div>
@@ -152,7 +169,7 @@ function Spinner() {
 }
 
 // ─── Login ───────────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin, className }) {
   const [email, setEmail]   = useState("");
   const [pw, setPw]         = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -175,7 +192,7 @@ function LoginScreen({ onLogin }) {
       <div style={S.loginCard}>
         <div style={S.loginLogo}>
           <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:100 }} />
-          <h1 style={S.loginTitle}>Pierwsza Klasa</h1>
+          <h1 style={S.loginTitle}>{className}</h1>
           <p style={S.loginSub}>Emilia Plater Polish School</p>
           <p style={S.loginSub}>Classroom Fund Manager</p>
         </div>
@@ -208,7 +225,7 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
-function Sidebar({ currentUser, view, setView, pendingCount, onLogout }) {
+function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className }) {
   const navItems = [
     { id:"dashboard", label:"Dashboard", icon:"home" },
     { id:"students",  label:"Students",  icon:"users" },
@@ -224,7 +241,7 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout }) {
         <div style={S.sideHeader}>
           <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:36 }} />
           <div>
-            <div style={S.sideTitle}>Pierwsza Klasa</div>
+            <div style={S.sideTitle}>{className}</div>
             <div style={S.sideRole}>Emilia Plater Polish School</div>
             <div style={S.sideRole}>{currentUser.role==="admin"?"★ Admin":"Classroom Mom"}</div>
           </div>
@@ -763,12 +780,31 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
 }
 
 // ─── Accounts Panel ───────────────────────────────────────────────────────────
-function AccountsPanel({ users, currentUser, showToast, reload }) {
+function AccountsPanel({ users, currentUser, showToast, reload, className, onReset }) {
   const [showAdd, setShowAdd] = useState(false);
   const [resetId, setResetId] = useState(null);
   const [form, setForm]       = useState({ name:"", email:"", password:"", role:"mom" });
   const [newPw, setNewPw]     = useState("");
   const [busy, setBusy]       = useState(false);
+
+  const [yearStep, setYearStep]       = useState(0); // 0=closed, 1=warning, 2=name, 3=confirm
+  const [newClassName, setNewClassName] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [yearBusy, setYearBusy]       = useState(false);
+
+  const openYearReset = () => { setNewClassName(className); setConfirmText(""); setYearStep(1); };
+  const closeYearReset = () => setYearStep(0);
+
+  const handleYearReset = async () => {
+    setYearBusy(true);
+    try {
+      await api.resetYear({ class_name: newClassName });
+      closeYearReset();
+      showToast("New school year started successfully!");
+      onReset(newClassName);
+    } catch (err) { showToast(err.message, "error"); }
+    finally { setYearBusy(false); }
+  };
 
   const handleCreate = async () => {
     if (!form.name || !form.email || !form.password) { showToast("All fields required.", "error"); return; }
@@ -807,7 +843,10 @@ function AccountsPanel({ users, currentUser, showToast, reload }) {
           <h2 style={S.pageTitle}>Accounts</h2>
           <p style={S.pageSubtitle}>Manage classroom mom accounts</p>
         </div>
-        <button style={S.btnPrimary} onClick={() => setShowAdd(true)}><Icon name="plus" size={16}/> Add Account</button>
+        <div style={{ display:"flex", gap:8 }}>
+          <button style={S.btnPrimary} onClick={() => setShowAdd(true)}><Icon name="plus" size={16}/> Add Account</button>
+          <button style={{ ...S.btnPrimary, background:"#ef4444" }} onClick={openYearReset}><Icon name="refresh" size={16}/> New School Year</button>
+        </div>
       </div>
 
       <div style={S.card}>
@@ -875,6 +914,68 @@ function AccountsPanel({ users, currentUser, showToast, reload }) {
             <button style={S.btnSecondary} onClick={() => setResetId(null)}>Cancel</button>
             <button style={{ ...S.btnPrimary, opacity:busy?0.7:1 }} onClick={() => handleReset(resetId)} disabled={busy}>
               {busy ? "Resetting…" : "Reset Password"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {yearStep === 1 && (
+        <Modal title="New School Year Reset" onClose={closeYearReset}>
+          <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
+            <Icon name="alert" size={16}/>
+            <strong>This action cannot be undone.</strong>
+          </div>
+          <p style={{ ...S.meta, marginBottom:8 }}>The following will be permanently deleted:</p>
+          <ul style={{ paddingLeft:20, color:"#374151", lineHeight:1.8, marginBottom:16 }}>
+            <li>All student records and payment information</li>
+            <li>All expense records</li>
+          </ul>
+          <p style={{ ...S.meta }}>User accounts will be kept. You will set the new class name in the next step.</p>
+          <div style={S.modalBtns}>
+            <button style={S.btnSecondary} onClick={closeYearReset}>Cancel</button>
+            <button style={{ ...S.btnPrimary, background:"#ef4444" }} onClick={() => setYearStep(2)}>Continue</button>
+          </div>
+        </Modal>
+      )}
+
+      {yearStep === 2 && (
+        <Modal title="New Class Name" onClose={closeYearReset}>
+          <p style={{ ...S.meta, marginBottom:12 }}>Enter the name for the new school year class.</p>
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Class Name</label>
+            <input style={S.input} value={newClassName}
+              onChange={e => setNewClassName(e.target.value)}
+              placeholder="e.g. Pierwsza Klasa"/>
+          </div>
+          <div style={S.modalBtns}>
+            <button style={S.btnSecondary} onClick={() => setYearStep(1)}>Back</button>
+            <button style={{ ...S.btnPrimary, background:"#ef4444" }}
+              onClick={() => setYearStep(3)} disabled={!newClassName.trim()}>Continue</button>
+          </div>
+        </Modal>
+      )}
+
+      {yearStep === 3 && (
+        <Modal title="Confirm Reset" onClose={closeYearReset}>
+          <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
+            <Icon name="alert" size={16}/>
+            <span>All students and expenses will be deleted. This cannot be undone.</span>
+          </div>
+          <p style={{ ...S.meta, marginBottom:12 }}>
+            Type <strong>RESET</strong> to confirm and start the new school year as <strong>{newClassName}</strong>.
+          </p>
+          <div style={S.fieldGroup}>
+            <input style={S.input} value={confirmText}
+              onChange={e => setConfirmText(e.target.value)}
+              placeholder="Type RESET here"/>
+          </div>
+          <div style={S.modalBtns}>
+            <button style={S.btnSecondary} onClick={closeYearReset}>Cancel</button>
+            <button
+              style={{ ...S.btnPrimary, background:"#ef4444", opacity:(confirmText==="RESET" && !yearBusy)?1:0.4 }}
+              onClick={handleYearReset}
+              disabled={confirmText !== "RESET" || yearBusy}>
+              {yearBusy ? "Resetting…" : "Confirm Reset"}
             </button>
           </div>
         </Modal>

@@ -71,3 +71,11 @@ INSERT INTO expenses (description, amount, category, date, submitted_by, status,
   ('Winter Party Decorations',      48.00, 'Holiday', '2025-12-15', 3, 'pending',  NULL),
   ('Valentine''s Day Cards & Candy',31.20, 'Holiday', '2026-02-10', 2, 'pending',  NULL)
 ON CONFLICT DO NOTHING;
+
+-- Settings
+CREATE TABLE IF NOT EXISTS settings (
+  key   VARCHAR(100) PRIMARY KEY,
+  value TEXT NOT NULL
+);
+INSERT INTO settings (key, value) VALUES ('class_name', 'Pierwsza Klasa')
+ON CONFLICT (key) DO NOTHING;
