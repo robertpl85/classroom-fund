@@ -102,6 +102,37 @@ router.patch('/:id/reject', requireAdmin, async (req, res) => {
   }
 });
 
+// PUT /api/expenses/:id — edit an expense (admin only)
+router.put('/:id', requireAdmin, async (req, res) => {
+  const { description, amount, category, date } = req.body;
+  if (!description || !amount || !date)
+    return res.status(400).json({ error: 'Description, amount, and date are required' });
+  try {
+    const { rows } = await db.query(
+      `UPDATE expenses SET description=$1, amount=$2, category=$3, date=$4
+       WHERE id=$5 RETURNING *`,
+      [description, amount, category || 'General', date, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Expense not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// DELETE /api/expenses/:id — delete an expense (admin only)
+router.delete('/:id', requireAdmin, async (req, res) => {
+  try {
+    const { rowCount } = await db.query('DELETE FROM expenses WHERE id=$1', [req.params.id]);
+    if (!rowCount) return res.status(404).json({ error: 'Expense not found' });
+    res.json({ message: 'Expense deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // GET /api/expenses/summary — balance info
 router.get('/summary', async (req, res) => {
   try {

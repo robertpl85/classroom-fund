@@ -39,6 +39,8 @@ export const api = {
   addExpense:     (data)=> request('POST', '/expenses', data),
   approveExpense: (id) => request('PATCH', `/expenses/${id}/approve`),
   rejectExpense:  (id) => request('PATCH', `/expenses/${id}/reject`),
+  updateExpense:  (id, data) => request('PUT',    `/expenses/${id}`, data),
+  deleteExpense:  (id)       => request('DELETE', `/expenses/${id}`),
 
   // Users
   getUsers:       ()        => request('GET',    '/users'),

@@ -174,8 +174,9 @@ function LoginScreen({ onLogin }) {
     <div style={S.loginWrap}>
       <div style={S.loginCard}>
         <div style={S.loginLogo}>
-          <div style={{ fontSize:52 }}>🏫</div>
-          <h1 style={S.loginTitle}>Room 204</h1>
+          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:100 }} />
+          <h1 style={S.loginTitle}>Pierwsza Klasa</h1>
+          <p style={S.loginSub}>Emilia Plater Polish School</p>
           <p style={S.loginSub}>Classroom Fund Manager</p>
         </div>
         <div style={S.fieldGroup}>
@@ -221,9 +222,10 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout }) {
     <aside style={S.sidebar}>
       <div>
         <div style={S.sideHeader}>
-          <span style={{ fontSize:24 }}>🏫</span>
+          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:36 }} />
           <div>
-            <div style={S.sideTitle}>Room 204</div>
+            <div style={S.sideTitle}>Pierwsza Klasa</div>
+            <div style={S.sideRole}>Emilia Plater Polish School</div>
             <div style={S.sideRole}>{currentUser.role==="admin"?"★ Admin":"Classroom Mom"}</div>
           </div>
         </div>
@@ -493,10 +495,39 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
 
 // ─── Expenses Panel ───────────────────────────────────────────────────────────
 function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [filter, setFilter]   = useState("all");
-  const [form, setForm]       = useState({ description:"", amount:"", category:"General", date:new Date().toISOString().split("T")[0] });
-  const [busy, setBusy]       = useState(false);
+  const [showAdd, setShowAdd]   = useState(false);
+  const [filter, setFilter]     = useState("all");
+  const [form, setForm]         = useState({ description:"", amount:"", category:"General", date:new Date().toISOString().split("T")[0] });
+  const [busy, setBusy]         = useState(false);
+  const [editExpense, setEditExpense] = useState(null);
+  const [editForm, setEditForm] = useState({ description:"", amount:"", category:"General", date:"" });
+  const [editBusy, setEditBusy] = useState(false);
+
+  const openEdit = (e) => {
+    setEditExpense(e);
+    setEditForm({ description:e.description, amount:parseFloat(e.amount), category:e.category, date:e.date?.slice(0,10) });
+  };
+
+  const handleEdit = async () => {
+    if (!editForm.description || !editForm.amount) { showToast("Description and amount required.", "error"); return; }
+    setEditBusy(true);
+    try {
+      await api.updateExpense(editExpense.id, { ...editForm, amount: Number(editForm.amount) });
+      showToast("Expense updated!");
+      setEditExpense(null);
+      reload();
+    } catch (err) { showToast(err.message, "error"); }
+    finally { setEditBusy(false); }
+  };
+
+  const handleDelete = async (e) => {
+    if (!window.confirm(`Delete "${e.description}"?`)) return;
+    try {
+      await api.deleteExpense(e.id);
+      showToast("Expense deleted.");
+      reload();
+    } catch (err) { showToast(err.message, "error"); }
+  };
 
   const filtered = expenses.filter(e => filter==="all" || e.status===filter);
 
@@ -552,10 +583,51 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
             <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
               <span style={S.expenseAmt}>-${parseFloat(e.amount).toFixed(2)}</span>
               <StatusChip status={e.status}/>
+              {currentUser.role==="admin" && e.status==="approved" && (
+                <div style={{ display:"flex", gap:4 }}>
+                  <button style={S.iconBtn} onClick={() => openEdit(e)} title="Edit"><Icon name="edit" size={14}/></button>
+                  <button style={{ ...S.iconBtn, color:"#ef4444" }} onClick={() => handleDelete(e)} title="Delete"><Icon name="trash" size={14}/></button>
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      {editExpense && (
+        <Modal title="Edit Expense" onClose={() => setEditExpense(null)}>
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Description</label>
+            <input style={S.input} value={editForm.description}
+              onChange={e => setEditForm({...editForm, description:e.target.value})}/>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <div style={S.fieldGroup}>
+              <label style={S.label}>Amount ($)</label>
+              <input style={S.input} type="number" step="0.01" min="0" value={editForm.amount}
+                onChange={e => setEditForm({...editForm, amount:e.target.value})}/>
+            </div>
+            <div style={S.fieldGroup}>
+              <label style={S.label}>Date</label>
+              <input style={S.input} type="date" value={editForm.date}
+                onChange={e => setEditForm({...editForm, date:e.target.value})}/>
+            </div>
+          </div>
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Category</label>
+            <select style={S.input} value={editForm.category}
+              onChange={e => setEditForm({...editForm, category:e.target.value})}>
+              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div style={S.modalBtns}>
+            <button style={S.btnSecondary} onClick={() => setEditExpense(null)}>Cancel</button>
+            <button style={{ ...S.btnPrimary, opacity:editBusy?0.7:1 }} onClick={handleEdit} disabled={editBusy}>
+              {editBusy ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {showAdd && (
         <Modal title="Log an Expense" onClose={() => setShowAdd(false)}>
@@ -754,7 +826,7 @@ function AccountsPanel({ users, currentUser, showToast, reload }) {
               <button style={S.iconBtn} onClick={() => { setResetId(u.id); setNewPw(""); }} title="Reset Password">
                 <Icon name="key" size={15}/>
               </button>
-              {u.id !== currentUser.id && u.role !== "admin" && (
+              {u.id !== currentUser.id && (
                 <button style={{ ...S.iconBtn, color:"#ef4444" }} onClick={() => handleDelete(u.id)}>
                   <Icon name="trash" size={15}/>
                 </button>
