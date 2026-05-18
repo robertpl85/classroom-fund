@@ -130,7 +130,7 @@ export default function App() {
   return (
     <div style={S.app}>
       {toast && (
-        <div style={{ ...S.toast, background: toast.type === "error" ? "#ef4444" : "#10b981" }}>
+        <div style={{ ...S.toast, background: toast.type === "error" ? "#ef4444" : "#7b2fbe" }}>
           {toast.msg}
         </div>
       )}
@@ -167,10 +167,10 @@ export default function App() {
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 function Spinner() {
   return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#f1f5f9" }}>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#f5f3ff" }}>
       <div style={{ textAlign:"center" }}>
         <div style={{ fontSize:40, marginBottom:12 }}>🏫</div>
-        <p style={{ color:"#6b7280", fontFamily:"Nunito,sans-serif" }}>Loading…</p>
+        <p style={{ color:"#7b2fbe", fontFamily:"Nunito,sans-serif" }}>Loading…</p>
       </div>
     </div>
   );
@@ -193,10 +193,10 @@ function MobileTopBar({ currentUser, className, onLogout }) {
       </div>
       {menuOpen && (
         <div style={S.mobileUserMenu}>
-          <div style={{ padding:"12px 16px", borderBottom:"1px solid #f3f4f6" }}>
-            <div style={{ fontWeight:700, color:"#111827", fontSize:14 }}>{currentUser.name}</div>
+          <div style={{ padding:"12px 16px", borderBottom:"1px solid #f3e8ff" }}>
+            <div style={{ fontWeight:700, color:"#2d0057", fontSize:14 }}>{currentUser.name}</div>
             <div style={{ color:"#6b7280", fontSize:12 }}>{currentUser.email}</div>
-            <div style={{ color:"#6366f1", fontSize:12, fontWeight:600, marginTop:2 }}>
+            <div style={{ color:"#7b2fbe", fontSize:12, fontWeight:600, marginTop:2 }}>
               {currentUser.role === "admin" ? "★ Admin" : "Classroom Mom"}
             </div>
           </div>
@@ -230,9 +230,11 @@ function LoginScreen({ onLogin, className }) {
 
   return (
     <div style={S.loginWrap}>
-      <div style={S.loginCard}>
+      {/* decorative blur orb */}
+      <div style={{ position:"absolute", width:500, height:500, background:"rgba(123,47,190,0.35)", borderRadius:"50%", filter:"blur(120px)", pointerEvents:"none", top:"10%", left:"50%", transform:"translateX(-50%)" }}/>
+      <div style={{ ...S.loginCard, position:"relative", zIndex:1 }}>
         <div style={S.loginLogo}>
-          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:100 }} />
+          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:110 }} />
           <h1 style={S.loginTitle}>{className}</h1>
           <p style={S.loginSub}>Emilia Plater Polish School</p>
           <p style={S.loginSub}>Classroom Fund Manager</p>
@@ -351,10 +353,10 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
       </div>
 
       <div style={{ ...S.statsGrid, gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: isMobile ? 10 : 16 }}>
-        <StatCard icon="dollar" label="Balance"       value={`$${summary.balance.toFixed(2)}`}           color="#6366f1" bg="#eef2ff" note="Available funds" />
-        <StatCard icon="check"  label="Collected"     value={`$${summary.total_collected.toFixed(2)}`}   color="#10b981" bg="#ecfdf5" note={`${paidCount}/${students.length} paid`} />
-        <StatCard icon="list"   label="Spent"         value={`$${summary.total_spent.toFixed(2)}`}       color="#f59e0b" bg="#fffbeb" note="Approved expenses" />
-        <StatCard icon="users"  label="Class Size"    value={students.length}                             color="#8b5cf6" bg="#f5f3ff" note={`${students.length-paidCount} unpaid`} />
+        <StatCard icon="dollar" label="Balance"    value={`$${summary.balance.toFixed(2)}`}           color="#7b2fbe" bg="#f5f3ff" note="Available funds" />
+        <StatCard icon="check"  label="Collected"  value={`$${summary.total_collected.toFixed(2)}`}   color="#059669" bg="#ecfdf5" note={`${paidCount}/${students.length} paid`} />
+        <StatCard icon="list"   label="Spent"      value={`$${summary.total_spent.toFixed(2)}`}       color="#d97706" bg="#fffbeb" note="Approved expenses" />
+        <StatCard icon="users"  label="Class Size" value={students.length}                             color="#6d28d9" bg="#f5f3ff" note={`${students.length-paidCount} unpaid`} />
       </div>
 
       {currentUser.role==="admin" && summary.pending_count > 0 && (
@@ -398,12 +400,12 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
                 </div>
               </div>
               {students.filter(s=>!s.paid).slice(0,4).map(s => (
-                <div key={s.id} style={{ ...S.expenseRow, borderLeft:"3px solid #fbbf24", paddingLeft:10, marginTop:8 }}>
+                <div key={s.id} style={{ ...S.expenseRow, borderLeft:"3px solid #c084fc", paddingLeft:10, marginTop:8 }}>
                   <div>
                     <div style={S.expenseDesc}>{s.name}</div>
                     <div style={S.expenseMeta}>{s.parent_email}</div>
                   </div>
-                  <span style={{ color:"#f59e0b", fontSize:13, fontWeight:600 }}>Pending</span>
+                  <span style={{ color:"#7b2fbe", fontSize:13, fontWeight:600 }}>Pending</span>
                 </div>
               ))}
             </>
@@ -850,7 +852,7 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
                   <div style={S.expenseMeta}>
                     Submitted by <strong>{e.submitted_by_name || "Unknown"}</strong> · {e.date?.slice(0,10)}
                   </div>
-                  <div style={{ marginTop:4, color:"#f59e0b", fontWeight:700, fontSize:16 }}>
+                  <div style={{ marginTop:4, color:"#7b2fbe", fontWeight:700, fontSize:16 }}>
                     ${parseFloat(e.amount).toFixed(2)}
                   </div>
                 </div>
@@ -1119,7 +1121,7 @@ function Modal({ title, onClose, children }) {
 function StatusChip({ status }) {
   const map = {
     approved: { bg:"#d1fae5", color:"#065f46", label:"Approved" },
-    pending:  { bg:"#fef3c7", color:"#92400e", label:"Pending" },
+    pending:  { bg:"#ede9fe", color:"#5b21b6", label:"Pending" },
     rejected: { bg:"#fee2e2", color:"#991b1b", label:"Rejected" },
     paid:     { bg:"#d1fae5", color:"#065f46", label:"Paid" },
     unpaid:   { bg:"#fee2e2", color:"#991b1b", label:"Unpaid" },
@@ -1148,93 +1150,119 @@ function getCatStyle(cat) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const S = {
   app:          { display:"flex", height:"100vh", width:"100vw", fontFamily:"'Nunito','Segoe UI',sans-serif", background:"#f8fafc", overflow:"hidden", margin:0, padding:0 },
-  sidebar:      { width:240, background:"#1e1b4b", display:"flex", flexDirection:"column", justifyContent:"space-between", padding:"0 0 16px", flexShrink:0, overflowY:"auto" },
-  sideHeader:   { display:"flex", alignItems:"center", gap:10, padding:"20px 16px 12px", borderBottom:"1px solid rgba(255,255,255,0.1)" },
-  sideTitle:    { color:"#fff", fontWeight:800, fontSize:16, lineHeight:1.2 },
-  sideRole:     { color:"#a5b4fc", fontSize:11, fontWeight:600 },
-  sideUser:     { display:"flex", alignItems:"center", gap:10, padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.1)", marginBottom:8 },
-  sideUserName: { color:"#e0e7ff", fontSize:13, fontWeight:700 },
-  sideUserEmail:{ color:"#818cf8", fontSize:11 },
-  navItem:      { display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 16px", background:"none", border:"none", cursor:"pointer", color:"#a5b4fc", fontSize:14, fontWeight:600, textAlign:"left", transition:"background .15s" },
-  navActive:    { background:"rgba(99,102,241,0.25)", color:"#fff", borderRight:"3px solid #818cf8" },
-  badge:        { background:"#f59e0b", color:"#fff", borderRadius:99, fontSize:11, fontWeight:700, minWidth:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 6px" },
-  logoutBtn:    { display:"flex", alignItems:"center", gap:8, margin:"8px 12px 0", padding:"9px 14px", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:8, color:"#a5b4fc", fontSize:13, fontWeight:600, cursor:"pointer" },
-  mobileTopBar: { position:"fixed", top:0, left:0, right:0, height:56, background:"#1e1b4b", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200, boxShadow:"0 2px 8px rgba(0,0,0,0.3)" },
-  mobileUserMenu: { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(0,0,0,0.15)", zIndex:300, minWidth:220, border:"1px solid #e5e7eb" },
+
+  // ── Sidebar ──
+  sidebar:      { width:240, background:"#1e0038", display:"flex", flexDirection:"column", justifyContent:"space-between", padding:"0 0 16px", flexShrink:0, overflowY:"auto" },
+  sideHeader:   { display:"flex", alignItems:"center", gap:10, padding:"20px 16px 12px", borderBottom:"1px solid rgba(192,132,252,0.2)" },
+  sideTitle:    { color:"#f3e8ff", fontWeight:800, fontSize:16, lineHeight:1.2 },
+  sideRole:     { color:"#c084fc", fontSize:11, fontWeight:600 },
+  sideUser:     { display:"flex", alignItems:"center", gap:10, padding:"12px 16px", borderBottom:"1px solid rgba(192,132,252,0.2)", marginBottom:8 },
+  sideUserName: { color:"#e9d5ff", fontSize:13, fontWeight:700 },
+  sideUserEmail:{ color:"#a855f7", fontSize:11 },
+  navItem:      { display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 16px", background:"none", border:"none", cursor:"pointer", color:"#c084fc", fontSize:14, fontWeight:600, textAlign:"left", transition:"background .15s" },
+  navActive:    { background:"rgba(168,85,247,0.25)", color:"#f3e8ff", borderRight:"3px solid #a855f7" },
+  badge:        { background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:11, fontWeight:700, minWidth:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 6px" },
+  logoutBtn:    { display:"flex", alignItems:"center", gap:8, margin:"8px 12px 0", padding:"9px 14px", background:"rgba(168,85,247,0.15)", border:"none", borderRadius:8, color:"#c084fc", fontSize:13, fontWeight:600, cursor:"pointer" },
+
+  // ── Mobile bars ──
+  mobileTopBar:   { position:"fixed", top:0, left:0, right:0, height:56, background:"#1e0038", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200, boxShadow:"0 2px 12px rgba(123,47,190,0.4)" },
+  mobileUserMenu: { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(123,47,190,0.2)", zIndex:300, minWidth:220, border:"1px solid #e9d5ff" },
   mobileMenuLogout: { display:"flex", alignItems:"center", gap:8, width:"100%", padding:"12px 16px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:14, fontWeight:600 },
-  bottomNav:    { position:"fixed", bottom:0, left:0, right:0, height:64, background:"#1e1b4b", display:"flex", alignItems:"stretch", zIndex:200, borderTop:"1px solid rgba(255,255,255,0.12)" },
-  bottomNavItem:{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.55)", padding:0, gap:2, transition:"background .15s" },
-  bottomNavActive:{ color:"#fff", background:"rgba(99,102,241,0.3)" },
-  bottomNavBadge:{ position:"absolute", top:-4, right:-8, background:"#f59e0b", color:"#fff", borderRadius:99, fontSize:10, fontWeight:700, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" },
-  main:         { flex:1, overflow:"auto", background:"#f1f5f9" },
+  bottomNav:      { position:"fixed", bottom:0, left:0, right:0, height:64, background:"#1e0038", display:"flex", alignItems:"stretch", zIndex:200, borderTop:"1px solid rgba(192,132,252,0.2)" },
+  bottomNavItem:  { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", color:"rgba(124,58,237,0.7)", padding:0, gap:2, transition:"background .15s" },
+  bottomNavActive:{ color:"#c084fc", background:"rgba(168,85,247,0.25)" },
+  bottomNavBadge: { position:"absolute", top:-4, right:-8, background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:10, fontWeight:700, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" },
+
+  // ── Layout ──
+  main:         { flex:1, overflow:"auto", background:"#f8f5ff" },
   page:         { padding:"28px 32px", maxWidth:1000, margin:"0 auto" },
   pageHeader:   { display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24, gap:16 },
-  pageTitle:    { fontSize:24, fontWeight:800, color:"#1e1b4b", margin:0 },
+  pageTitle:    { fontSize:24, fontWeight:800, color:"#2d0057", margin:0 },
   pageSubtitle: { color:"#6b7280", fontSize:14, marginTop:2 },
-  card:         { background:"#fff", borderRadius:14, padding:20, marginBottom:20, boxShadow:"0 1px 4px rgba(0,0,0,.08)", border:"1px solid #e5e7eb" },
-  cardTitle:    { fontSize:15, fontWeight:800, color:"#1e1b4b", marginBottom:14, marginTop:0 },
-  statCard:     { background:"#fff", borderRadius:14, padding:18, boxShadow:"0 1px 4px rgba(0,0,0,.08)", border:"1px solid #e5e7eb" },
+  statsGrid:    { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 },
+  twoCol:       { display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 },
+
+  // ── Cards ──
+  card:         { background:"#fff", borderRadius:14, padding:20, marginBottom:20, boxShadow:"0 1px 4px rgba(123,47,190,0.08)", border:"1px solid #ede9fe" },
+  cardTitle:    { fontSize:15, fontWeight:800, color:"#2d0057", marginBottom:14, marginTop:0 },
+  statCard:     { background:"#fff", borderRadius:14, padding:18, boxShadow:"0 1px 4px rgba(123,47,190,0.08)", border:"1px solid #ede9fe" },
   statIcon:     { width:40, height:40, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:10 },
-  statValue:    { fontSize:22, fontWeight:800, color:"#1e1b4b", marginBottom:2 },
+  statValue:    { fontSize:22, fontWeight:800, color:"#2d0057", marginBottom:2 },
   statLabel:    { fontSize:13, fontWeight:700, color:"#374151", marginBottom:2 },
   statNote:     { fontSize:12, color:"#9ca3af" },
-  alertBox:     { background:"#fef3c7", border:"1px solid #fbbf24", borderRadius:10, padding:"12px 16px", display:"flex", alignItems:"center", gap:10, marginBottom:20, cursor:"pointer", color:"#92400e", fontWeight:600, fontSize:14 },
+  approvalCard: { background:"#fff", borderRadius:12, padding:18, marginBottom:12, boxShadow:"0 1px 4px rgba(123,47,190,0.1)", border:"1px solid #ede9fe" },
+  studentCard:  { background:"#fff", borderRadius:12, padding:"14px", marginBottom:10, boxShadow:"0 1px 3px rgba(123,47,190,0.08)", border:"1px solid #ede9fe" },
+
+  // ── Alerts / info ──
+  alertBox:     { background:"#faf5ff", border:"1px solid #c084fc", borderRadius:10, padding:"12px 16px", display:"flex", alignItems:"center", gap:10, marginBottom:20, cursor:"pointer", color:"#5b21b6", fontWeight:600, fontSize:14 },
   alertArrow:   { marginLeft:"auto", fontWeight:700 },
-  infoBox:      { background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, color:"#1d4ed8", fontSize:13, marginBottom:12 },
+  infoBox:      { background:"#faf5ff", border:"1px solid #e9d5ff", borderRadius:8, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, color:"#6b21a8", fontSize:13, marginBottom:12 },
+
+  // ── Rows ──
   expenseRow:   { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:"1px solid #f3f4f6", gap:12 },
   expenseDesc:  { fontWeight:600, color:"#111827", fontSize:14 },
   expenseMeta:  { color:"#9ca3af", fontSize:12, marginTop:2 },
-  expenseAmt:   { fontWeight:700, color:"#374151", fontSize:15, whiteSpace:"nowrap" },
+  expenseAmt:   { fontWeight:700, color:"#2d0057", fontSize:15, whiteSpace:"nowrap" },
   catBadge:     { display:"flex", alignItems:"center", gap:4, padding:"3px 10px", borderRadius:99, fontSize:12, fontWeight:700, whiteSpace:"nowrap", flexShrink:0 },
-  approvalCard: { background:"#fff", borderRadius:12, padding:18, marginBottom:12, boxShadow:"0 1px 4px rgba(0,0,0,.1)", border:"1px solid #e5e7eb" },
   progressWrap: { marginTop:8 },
-  progressBar:  { height:10, background:"#e5e7eb", borderRadius:99, overflow:"hidden" },
-  progressFill: { height:"100%", background:"linear-gradient(90deg,#6366f1,#8b5cf6)", borderRadius:99, transition:"width .4s" },
-  avatar:       { width:36, height:36, borderRadius:"50%", background:"#6366f1", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:15, flexShrink:0 },
+  progressBar:  { height:10, background:"#e9d5ff", borderRadius:99, overflow:"hidden" },
+  progressFill: { height:"100%", background:"linear-gradient(90deg,#7b2fbe,#a855f7)", borderRadius:99, transition:"width .4s" },
+  avatar:       { width:36, height:36, borderRadius:"50%", background:"#7b2fbe", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:15, flexShrink:0 },
   miniAvatar:   { width:30, height:30, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, flexShrink:0 },
-  filterBar:    { display:"flex", gap:12, marginBottom:16, flexWrap:"wrap", alignItems:"center" },
-  filterBtns:   { display:"flex", gap:6 },
-  filterBtn:    { padding:"7px 16px", borderRadius:99, border:"1px solid #e5e7eb", background:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", color:"#6b7280" },
-  filterActive: { background:"#1e1b4b", color:"#fff", border:"1px solid #1e1b4b" },
-  table:        { width:"100%", borderCollapse:"collapse" },
-  thead:        { background:"#f8fafc" },
-  th:           { padding:"10px 14px", textAlign:"left", fontSize:12, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:".04em", borderBottom:"1px solid #e5e7eb" },
-  trow:         { borderBottom:"1px solid #f3f4f6" },
-  td:           { padding:"12px 14px", fontSize:14 },
-  studentName:  { fontWeight:600, color:"#111827" },
-  studentCard:  { background:"#fff", borderRadius:12, padding:"14px", marginBottom:10, boxShadow:"0 1px 3px rgba(0,0,0,.08)", border:"1px solid #e5e7eb" },
-  statusToggle: { padding:"4px 12px", borderRadius:99, border:"none", cursor:"pointer", fontSize:13, fontWeight:700 },
-  paidBtn:      { background:"#d1fae5", color:"#065f46" },
-  unpaidBtn:    { background:"#fee2e2", color:"#991b1b" },
   userRow:      { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 0", borderBottom:"1px solid #f3f4f6" },
-  adminTag:     { background:"#e0e7ff", color:"#3730a3", padding:"2px 8px", borderRadius:99, fontSize:11, fontWeight:700, marginLeft:6 },
+  adminTag:     { background:"#f3e8ff", color:"#6b21a8", padding:"2px 8px", borderRadius:99, fontSize:11, fontWeight:700, marginLeft:6 },
   sectionLabel: { fontSize:13, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:".05em" },
   emptyState:   { textAlign:"center", padding:"60px 20px" },
   empty:        { textAlign:"center", color:"#9ca3af", padding:"24px 0", fontSize:14 },
   meta:         { color:"#6b7280", fontSize:13 },
-  label:        { display:"block", fontSize:13, fontWeight:700, color:"#374151", marginBottom:5 },
-  input:        { width:"100%", padding:"9px 12px", borderRadius:8, border:"1.5px solid #e5e7eb", fontSize:14, outline:"none", boxSizing:"border-box", background:"#fff", fontFamily:"inherit" },
-  fieldGroup:   { marginBottom:14 },
-  eyeBtn:       { position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"#6b7280", display:"flex", alignItems:"center" },
-  btnPrimary:   { display:"inline-flex", alignItems:"center", gap:6, padding:"9px 20px", borderRadius:8, background:"#4f46e5", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" },
-  btnSecondary: { display:"inline-flex", alignItems:"center", gap:6, padding:"9px 20px", borderRadius:8, background:"#fff", color:"#374151", border:"1.5px solid #e5e7eb", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" },
+
+  // ── Filter ──
+  filterBar:    { display:"flex", gap:12, marginBottom:16, flexWrap:"wrap", alignItems:"center" },
+  filterBtns:   { display:"flex", gap:6 },
+  filterBtn:    { padding:"7px 16px", borderRadius:99, border:"1px solid #e9d5ff", background:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", color:"#6b7280" },
+  filterActive: { background:"#4a0080", color:"#fff", border:"1px solid #4a0080" },
+
+  // ── Table ──
+  table:        { width:"100%", borderCollapse:"collapse" },
+  thead:        { background:"#faf5ff" },
+  th:           { padding:"10px 14px", textAlign:"left", fontSize:12, fontWeight:700, color:"#6b21a8", textTransform:"uppercase", letterSpacing:".04em", borderBottom:"1px solid #ede9fe" },
+  trow:         { borderBottom:"1px solid #f3f4f6" },
+  td:           { padding:"12px 14px", fontSize:14 },
+  studentName:  { fontWeight:600, color:"#111827" },
+  statusToggle: { padding:"4px 12px", borderRadius:99, border:"none", cursor:"pointer", fontSize:13, fontWeight:700 },
+  paidBtn:      { background:"#d1fae5", color:"#065f46" },
+  unpaidBtn:    { background:"#fee2e2", color:"#991b1b" },
+
+  // ── Buttons ──
+  btnPrimary:   { display:"inline-flex", alignItems:"center", gap:6, padding:"9px 20px", borderRadius:8, background:"linear-gradient(135deg, #4a0080, #7b2fbe)", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" },
+  btnSecondary: { display:"inline-flex", alignItems:"center", gap:6, padding:"9px 20px", borderRadius:8, background:"#fff", color:"#4a0080", border:"1.5px solid #e9d5ff", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" },
   btnApprove:   { display:"inline-flex", alignItems:"center", gap:6, padding:"8px 16px", borderRadius:8, background:"#10b981", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" },
   btnReject:    { display:"inline-flex", alignItems:"center", gap:6, padding:"8px 16px", borderRadius:8, background:"#fee2e2", color:"#991b1b", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" },
-  iconBtn:      { padding:7, borderRadius:7, background:"#f3f4f6", border:"none", cursor:"pointer", display:"flex", alignItems:"center", color:"#374151" },
-  overlay:      { position:"fixed", inset:0, background:"rgba(0,0,0,.45)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:16 },
-  modal:        { background:"#fff", borderRadius:14, width:"100%", maxWidth:460, padding:24, boxShadow:"0 20px 60px rgba(0,0,0,.2)" },
-  modalHeader:  { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 },
-  modalTitle:   { fontSize:17, fontWeight:800, color:"#1e1b4b", margin:0 },
-  closeBtn:     { background:"none", border:"none", cursor:"pointer", color:"#6b7280", display:"flex", padding:4 },
-  modalBtns:    { display:"flex", gap:10, justifyContent:"flex-end", marginTop:20 },
+  iconBtn:      { padding:7, borderRadius:7, background:"#f5f3ff", border:"none", cursor:"pointer", display:"flex", alignItems:"center", color:"#4a0080" },
+
+  // ── Forms ──
+  label:        { display:"block", fontSize:13, fontWeight:700, color:"#4a0080", marginBottom:5 },
+  input:        { width:"100%", padding:"9px 12px", borderRadius:8, border:"1.5px solid #e9d5ff", fontSize:14, outline:"none", boxSizing:"border-box", background:"#fff", fontFamily:"inherit" },
+  fieldGroup:   { marginBottom:14 },
+  eyeBtn:       { position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"#a855f7", display:"flex", alignItems:"center" },
   errorText:    { color:"#ef4444", fontSize:13, marginBottom:12, fontWeight:600 },
-  loginWrap:    { display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", width:"100vw", margin:0, padding:20, background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4c1d95 100%)" },
-  loginCard:    { background:"#fff", borderRadius:18, padding:40, width:"100%", maxWidth:400, boxShadow:"0 25px 60px rgba(0,0,0,.3)" },
+
+  // ── Modal ──
+  overlay:      { position:"fixed", inset:0, background:"rgba(45,0,87,.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:16 },
+  modal:        { background:"#fff", borderRadius:14, width:"100%", maxWidth:460, padding:24, boxShadow:"0 20px 60px rgba(123,47,190,0.25)" },
+  modalHeader:  { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 },
+  modalTitle:   { fontSize:17, fontWeight:800, color:"#2d0057", margin:0 },
+  closeBtn:     { background:"none", border:"none", cursor:"pointer", color:"#a855f7", display:"flex", padding:4 },
+  modalBtns:    { display:"flex", gap:10, justifyContent:"flex-end", marginTop:20 },
+
+  // ── Login ──
+  loginWrap:    { display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", width:"100vw", margin:0, padding:20, background:"linear-gradient(135deg, #1a0033 0%, #4a0080 40%, #7b2fbe 70%, #9d4edd 100%)", position:"relative", overflow:"hidden" },
+  loginCard:    { background:"#fff", borderRadius:18, padding:40, width:"100%", maxWidth:400, boxShadow:"0 25px 60px rgba(123,47,190,0.4)" },
   loginLogo:    { textAlign:"center", marginBottom:28 },
-  loginTitle:   { fontSize:26, fontWeight:800, color:"#1e1b4b", margin:0 },
-  loginSub:     { color:"#6b7280", fontSize:14, marginTop:4 },
+  loginTitle:   { fontSize:28, fontWeight:700, color:"#2d0057", margin:0, fontFamily:"'Playfair Display', serif" },
+  loginSub:     { color:"#6b21a8", fontSize:14, marginTop:4, fontFamily:"'Nunito', sans-serif" },
   loginHint:    { textAlign:"center", fontSize:12, color:"#9ca3af", marginTop:16 },
-  statsGrid:    { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 },
-  twoCol:       { display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 },
-  toast:        { position:"fixed", top:20, right:20, color:"#fff", padding:"12px 20px", borderRadius:10, fontWeight:700, fontSize:14, zIndex:2000, boxShadow:"0 4px 20px rgba(0,0,0,.2)" },
+
+  // ── Toast ──
+  toast:        { position:"fixed", top:20, right:20, color:"#fff", padding:"12px 20px", borderRadius:10, fontWeight:700, fontSize:14, zIndex:2000, boxShadow:"0 4px 20px rgba(123,47,190,0.3)" },
 };
