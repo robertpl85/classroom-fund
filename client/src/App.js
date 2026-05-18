@@ -1030,7 +1030,7 @@ function getCatStyle(cat) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const S = {
-  app:          { display:"flex", height:"100vh", fontFamily:"'Nunito','Segoe UI',sans-serif", background:"#f8fafc", overflow:"hidden" },
+  app:          { display:"flex", height:"100vh", width:"100vw", fontFamily:"'Nunito','Segoe UI',sans-serif", background:"#f8fafc", overflow:"hidden", margin:0, padding:0 },
   sidebar:      { width:240, background:"#1e1b4b", display:"flex", flexDirection:"column", justifyContent:"space-between", padding:"0 0 16px", flexShrink:0, overflowY:"auto" },
   sideHeader:   { display:"flex", alignItems:"center", gap:10, padding:"20px 16px 12px", borderBottom:"1px solid rgba(255,255,255,0.1)" },
   sideTitle:    { color:"#fff", fontWeight:800, fontSize:16, lineHeight:1.2 },
@@ -1105,7 +1105,7 @@ const S = {
   closeBtn:     { background:"none", border:"none", cursor:"pointer", color:"#6b7280", display:"flex", padding:4 },
   modalBtns:    { display:"flex", gap:10, justifyContent:"flex-end", marginTop:20 },
   errorText:    { color:"#ef4444", fontSize:13, marginBottom:12, fontWeight:600 },
-  loginWrap:    { display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4c1d95 100%)", padding:20 },
+  loginWrap:    { display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", width:"100vw", margin:0, padding:20, background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4c1d95 100%)" },
   loginCard:    { background:"#fff", borderRadius:18, padding:40, width:"100%", maxWidth:400, boxShadow:"0 25px 60px rgba(0,0,0,.3)" },
   loginLogo:    { textAlign:"center", marginBottom:28 },
   loginTitle:   { fontSize:26, fontWeight:800, color:"#1e1b4b", margin:0 },
