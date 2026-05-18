@@ -24,6 +24,10 @@ router.post('/', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Name and parent email are required' });
 
   try {
+    const dup = await db.query('SELECT id FROM students WHERE LOWER(name) = LOWER($1)', [name]);
+    if (dup.rows.length)
+      return res.status(409).json({ error: 'A student with this name already exists' });
+
     const { rows } = await db.query(
       `INSERT INTO students (name, parent_email, parent_phone, paid, amount)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
@@ -40,6 +44,13 @@ router.post('/', requireAdmin, async (req, res) => {
 router.put('/:id', requireAdmin, async (req, res) => {
   const { name, parent_email, parent_phone, paid, amount } = req.body;
   try {
+    const dup = await db.query(
+      'SELECT id FROM students WHERE LOWER(name) = LOWER($1) AND id != $2',
+      [name, req.params.id]
+    );
+    if (dup.rows.length)
+      return res.status(409).json({ error: 'A student with this name already exists' });
+
     const { rows } = await db.query(
       `UPDATE students SET name=$1, parent_email=$2, parent_phone=$3, paid=$4, amount=$5
        WHERE id=$6 RETURNING *`,
