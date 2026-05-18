@@ -5,32 +5,18 @@ const { requireAuth, requireAdmin } = require('../middleware');
 router.use(requireAuth);
 
 // GET /api/expenses
-// Admin sees all; moms see only their own
+// All authenticated users see all expenses; edit/delete remain admin-only
 router.get('/', async (req, res) => {
   try {
-    let query, params;
-    if (req.user.role === 'admin') {
-      query = `
-        SELECT e.*,
-          su.name AS submitted_by_name,
-          au.name AS approved_by_name
-        FROM expenses e
-        LEFT JOIN users su ON e.submitted_by = su.id
-        LEFT JOIN users au ON e.approved_by  = au.id
-        ORDER BY e.date DESC, e.created_at DESC`;
-      params = [];
-    } else {
-      query = `
-        SELECT e.*,
-          su.name AS submitted_by_name,
-          au.name AS approved_by_name
-        FROM expenses e
-        LEFT JOIN users su ON e.submitted_by = su.id
-        LEFT JOIN users au ON e.approved_by  = au.id
-        WHERE e.submitted_by = $1
-        ORDER BY e.date DESC, e.created_at DESC`;
-      params = [req.user.id];
-    }
+    const query = `
+      SELECT e.*,
+        su.name AS submitted_by_name,
+        au.name AS approved_by_name
+      FROM expenses e
+      LEFT JOIN users su ON e.submitted_by = su.id
+      LEFT JOIN users au ON e.approved_by  = au.id
+      ORDER BY e.date DESC, e.created_at DESC`;
+    const params = [];
     const { rows } = await db.query(query, params);
     res.json(rows);
   } catch (err) {
