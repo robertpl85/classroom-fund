@@ -434,7 +434,7 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editSt, setEditSt]   = useState(null);
   const [filter, setFilter]   = useState("all");
-  const [form, setForm]       = useState({ name:"", parent_email:"", parent_phone:"", paid:false, amount:40 });
+  const [form, setForm]       = useState({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 });
   const [busy, setBusy]       = useState(false);
 
   const filtered = students.filter(s => {
@@ -445,7 +445,7 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
     return m;
   });
 
-  const openAdd  = () => { setForm({ name:"", parent_email:"", parent_phone:"", paid:false, amount:40 }); setEditSt(null); setShowAdd(true); };
+  const openAdd  = () => { setForm({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 }); setEditSt(null); setShowAdd(true); };
   const openEdit = s  => { setForm({ name:s.name, parent_email:s.parent_email, parent_phone:s.parent_phone||"", paid:s.paid, amount:s.amount }); setEditSt(s); setShowAdd(true); };
 
   const handleSave = async () => {
@@ -461,7 +461,7 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
 
   const togglePaid = async (s) => {
     try {
-      await api.togglePaid(s.id, { paid: !s.paid, amount: !s.paid ? 40 : 0 });
+      await api.togglePaid(s.id, { paid: !s.paid, amount: !s.paid ? 50 : 0 });
       reload();
     } catch (err) { showToast(err.message, "error"); }
   };
