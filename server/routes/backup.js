@@ -68,12 +68,17 @@ router.post('/restore', (req, res) => {
     return res.status(404).json({ error: 'Backup file not found' });
   }
 
-  const cmd = `PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} < ${filepath}`;
+  const restoreCmd = `
+    PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} -c "
+      TRUNCATE TABLE expenses, students, settings, users, audit_log RESTART IDENTITY CASCADE;
+    " && PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} < ${filepath}
+  `;
 
-  exec(cmd, (err) => {
+  exec(restoreCmd, (err, stdout, stderr) => {
     if (err) {
       console.error('Restore failed:', err);
-      return res.status(500).json({ error: 'Restore failed' });
+      console.error('stderr:', stderr);
+      return res.status(500).json({ error: 'Restore failed: ' + stderr });
     }
     res.json({ message: 'Database restored successfully' });
   });
