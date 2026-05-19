@@ -52,4 +52,9 @@ export const api = {
   resetPassword:  (id, pw)  => request('PATCH',  `/users/${id}/password`, { password: pw }),
   unlockUser:     (id)      => request('PATCH',  `/users/${id}/unlock`),
   deleteUser:     (id)      => request('DELETE', `/users/${id}`),
+
+  // Backups
+  getBackups:    ()           => request('GET',  '/backup/list'),
+  createBackup:  ()           => request('POST', '/backup/create'),
+  restoreBackup: (filename)   => request('POST', '/backup/restore', { filename }),
 };

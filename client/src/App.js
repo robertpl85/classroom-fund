@@ -68,7 +68,9 @@ const Icon = ({ name, size = 18 }) => {
     eyeOff:  "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24 M1 1l22 22",
     tag:     "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z M7 7h.01",
     refresh: "M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0114.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0020.49 15",
-    unlock:  "M8 11V7a4 4 0 118 0m0 0v4 M5 11h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z",
+    unlock:   "M8 11V7a4 4 0 118 0m0 0v4 M5 11h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z",
+    save:     "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z M17 21v-8H7v8 M7 3v5h8",
+    database: "M12 2C6.48 2 2 4.69 2 8s4.48 6 10 6 10-2.69 10-6-4.48-6-10-6z M2 14c0 3.31 4.48 6 10 6s10-2.69 10-6 M2 8v6 M22 8v6",
   };
   const d = icons[name];
   if (!d) return null;
@@ -1104,6 +1106,20 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
   const [confirmText, setConfirmText]   = useState("");
   const [yearBusy, setYearBusy]         = useState(false);
 
+  // Backup & Restore state
+  const [backups, setBackups]           = useState([]);
+  const [backupBusy, setBackupBusy]     = useState(false);
+  const [restoreFile, setRestoreFile]   = useState(null);
+  const [restoreStep, setRestoreStep]   = useState(0);
+  const [restoreText, setRestoreText]   = useState("");
+  const [restoreBusy, setRestoreBusy]   = useState(false);
+
+  const loadBackups = useCallback(() => {
+    api.getBackups().then(setBackups).catch(() => {});
+  }, []);
+
+  useEffect(() => { loadBackups(); }, [loadBackups]);
+
   const openYearReset  = () => { setNewClassName(className); setConfirmText(""); setYearStep(1); };
   const closeYearReset = () => setYearStep(0);
 
@@ -1154,6 +1170,29 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
     if (!window.confirm("Delete this account?")) return;
     try { await api.deleteUser(id); showToast("Account removed."); reload(); }
     catch (err) { showToast(err.message, "error"); }
+  };
+
+  const handleCreateBackup = async () => {
+    setBackupBusy(true);
+    try {
+      await api.createBackup();
+      showToast("Backup created successfully!");
+      loadBackups();
+    } catch (err) { showToast(err.message, "error"); }
+    finally { setBackupBusy(false); }
+  };
+
+  const handleRestore = async () => {
+    setRestoreBusy(true);
+    try {
+      await api.restoreBackup(restoreFile.filename);
+      showToast("Database restored!");
+      setRestoreStep(0);
+      setTimeout(() => {
+        localStorage.removeItem("cf_token");
+        window.location.reload();
+      }, 2000);
+    } catch (err) { showToast(err.message, "error"); setRestoreBusy(false); }
   };
 
   return (
@@ -1258,6 +1297,84 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
             <button style={S.btnSecondary} onClick={() => setResetId(null)}>Cancel</button>
             <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={() => handleReset(resetId)} disabled={busy}>
               {busy ? "Resetting…" : "Reset Password"}
+            </PrimaryButton>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Backup & Restore ── */}
+      <div style={{ ...S.card, marginTop:24 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <Icon name="database" size={18} />
+            <h3 style={{ ...S.cardTitle, margin:0 }}>Backup &amp; Restore</h3>
+          </div>
+          <PrimaryButton onClick={handleCreateBackup} disabled={backupBusy}
+            style={{ opacity:backupBusy?0.7:1 }}>
+            <Icon name="save" size={15}/>
+            {backupBusy ? " Creating…" : " Create Backup Now"}
+          </PrimaryButton>
+        </div>
+
+        {backups.length === 0 ? (
+          <p style={S.empty}>No backups found.</p>
+        ) : (
+          backups.map(b => (
+            <div key={b.filename} style={{ ...S.expenseRow, padding:"10px 0", borderBottom:"1px solid #f3f4f6" }}>
+              <div>
+                <div style={{ fontWeight:600, color:"#111827", fontSize:14 }}>{b.date}</div>
+                <div style={S.expenseMeta}>{b.size} · {new Date(b.created).toLocaleString()}</div>
+              </div>
+              <button
+                style={{ ...S.iconBtn, color:"#f59e0b", padding:"6px 12px", fontSize:13, fontWeight:700, gap:6, display:"flex", alignItems:"center" }}
+                onClick={() => { setRestoreFile(b); setRestoreStep(1); setRestoreText(""); }}>
+                <Icon name="refresh" size={14}/> Restore
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Restore confirmation — step 1: warning */}
+      {restoreStep === 1 && restoreFile && (
+        <Modal title="Restore Database" onClose={() => setRestoreStep(0)}>
+          <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
+            <Icon name="alert" size={16}/>
+            <strong>WARNING: This cannot be undone.</strong>
+          </div>
+          <p style={{ ...S.meta, marginBottom:12, lineHeight:1.6 }}>
+            This will replace <strong>ALL current data</strong> — including students, expenses, and settings —
+            with the data from <strong>{restoreFile.date}</strong>.
+          </p>
+          <div style={S.modalBtns}>
+            <button style={S.btnSecondary} onClick={() => setRestoreStep(0)}>Cancel</button>
+            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setRestoreStep(2)}>Continue</PrimaryButton>
+          </div>
+        </Modal>
+      )}
+
+      {/* Restore confirmation — step 2: type RESTORE */}
+      {restoreStep === 2 && restoreFile && (
+        <Modal title="Confirm Restore" onClose={() => setRestoreStep(0)}>
+          <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
+            <Icon name="alert" size={16}/>
+            <span>All current data will be permanently overwritten.</span>
+          </div>
+          <p style={{ ...S.meta, marginBottom:12 }}>
+            Type <strong>RESTORE</strong> to confirm restoring from <strong>{restoreFile.date}</strong>.
+          </p>
+          <div style={S.fieldGroup}>
+            <input style={S.input} value={restoreText}
+              onChange={e => setRestoreText(e.target.value)}
+              placeholder="Type RESTORE here" autoFocus/>
+          </div>
+          <div style={S.modalBtns}>
+            <button style={S.btnSecondary} onClick={() => setRestoreStep(0)}>Cancel</button>
+            <PrimaryButton
+              style={{ background:"#ef4444", opacity:(restoreText==="RESTORE" && !restoreBusy)?1:0.4 }}
+              onClick={handleRestore}
+              disabled={restoreText !== "RESTORE" || restoreBusy}>
+              {restoreBusy ? "Restoring…" : "Restore Database"}
             </PrimaryButton>
           </div>
         </Modal>
