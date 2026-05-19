@@ -11,6 +11,33 @@ function useIsMobile() {
   return isMobile;
 }
 
+function useCountUp(target, duration = 1000) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!target) return;
+    let start = 0;
+    const increment = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= target) { setCount(target); clearInterval(timer); }
+      else setCount(start);
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target, duration]);
+  return count;
+}
+
+function getPasswordStrength(pw) {
+  if (!pw) return 0;
+  if (pw.length < 6) return 1;
+  const hasNum     = /\d/.test(pw);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(pw);
+  const hasUpper   = /[A-Z]/.test(pw);
+  if (pw.length >= 8 && hasUpper && (hasNum || hasSpecial)) return 3;
+  if (hasNum || hasSpecial) return 2;
+  return 1;
+}
+
 const CATEGORIES = ["Holiday", "Craft", "Snacks", "Field Trip", "Birthday", "General", "Other"];
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -46,6 +73,37 @@ const Icon = ({ name, size = 18 }) => {
     </svg>
   );
 };
+
+// ─── Primary Button (with hover) ─────────────────────────────────────────────
+function PrimaryButton({ onClick, disabled, style: extraStyle, children }) {
+  const [hovered, setHovered] = useState(false);
+  const hasCustomBg = extraStyle?.background;
+  const bg = hasCustomBg
+    ? extraStyle.background
+    : (hovered && !disabled) ? "#3b0764" : "linear-gradient(135deg, #4a0080, #7b2fbe)";
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{ ...S.btnPrimary, ...extraStyle, background: bg, transition: "background 0.2s ease" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─── Skeleton Card ────────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div style={{ background:"#f3e8ff", borderRadius:12, padding:20, animation:"skeletonPulse 1.5s ease infinite" }}>
+      <div style={{ height:20, background:"#e9d5ff", borderRadius:6, marginBottom:12, width:"60%" }}/>
+      <div style={{ height:32, background:"#e9d5ff", borderRadius:6, marginBottom:8, width:"40%" }}/>
+      <div style={{ height:14, background:"#e9d5ff", borderRadius:6, width:"80%" }}/>
+    </div>
+  );
+}
 
 // ─── Main App ────────────────────────────────────────────────────────────────
 export default function App() {
@@ -138,27 +196,30 @@ export default function App() {
       <Sidebar currentUser={currentUser} view={view} setView={setView}
         pendingCount={currentUser.role === "admin" ? pendingCount : 0}
         onLogout={handleLogout} className={className} isMobile={isMobile} />
-      <main style={{ ...S.main, ...(isMobile ? { paddingTop: 56, paddingBottom: 70 } : {}) }}>
-        {view === "dashboard" && (
-          <Dashboard summary={summary} students={students} expenses={expenses}
-            currentUser={currentUser} setView={setView} onRefresh={loadAll} />
-        )}
-        {view === "students" && (
-          <StudentsPanel students={students} currentUser={currentUser}
-            showToast={showToast} reload={loadAll} />
-        )}
-        {view === "expenses" && (
-          <ExpensesPanel expenses={expenses} currentUser={currentUser}
-            showToast={showToast} reload={loadAll} summary={summary} />
-        )}
-        {view === "approvals" && currentUser.role === "admin" && (
-          <ApprovalsPanel expenses={expenses} users={users} currentUser={currentUser}
-            showToast={showToast} reload={loadAll} />
-        )}
-        {view === "accounts" && currentUser.role === "admin" && (
-          <AccountsPanel users={users} currentUser={currentUser}
-            showToast={showToast} reload={loadAll} className={className} onReset={handleReset} />
-        )}
+      <main style={{ ...S.main, ...(isMobile ? { paddingTop:56, paddingBottom:70 } : {}) }}>
+        {/* keyed wrapper triggers fadeIn animation on every view change */}
+        <div key={view} style={{ animation:"fadeIn 0.3s ease forwards" }}>
+          {view === "dashboard" && (
+            <Dashboard summary={summary} students={students} expenses={expenses}
+              currentUser={currentUser} setView={setView} onRefresh={loadAll} />
+          )}
+          {view === "students" && (
+            <StudentsPanel students={students} currentUser={currentUser}
+              showToast={showToast} reload={loadAll} />
+          )}
+          {view === "expenses" && (
+            <ExpensesPanel expenses={expenses} currentUser={currentUser}
+              showToast={showToast} reload={loadAll} summary={summary} />
+          )}
+          {view === "approvals" && currentUser.role === "admin" && (
+            <ApprovalsPanel expenses={expenses} users={users} currentUser={currentUser}
+              showToast={showToast} reload={loadAll} />
+          )}
+          {view === "accounts" && currentUser.role === "admin" && (
+            <AccountsPanel users={users} currentUser={currentUser}
+              showToast={showToast} reload={loadAll} className={className} onReset={handleReset} />
+          )}
+        </div>
       </main>
     </div>
   );
@@ -217,6 +278,36 @@ function LoginScreen({ onLogin, className }) {
   const [error, setError]   = useState("");
   const [busy, setBusy]     = useState(false);
 
+  const strength = getPasswordStrength(pw);
+  const strengthLabel = ["", "Weak", "Medium", "Strong"][strength];
+  const strengthColor = ["", "#ef4444", "#f59e0b", "#10b981"][strength];
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeSlideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes countUp { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes skeletonPulse {
+        0%   { background-color: #e9d5ff; }
+        50%  { background-color: #f3e8ff; }
+        100% { background-color: #e9d5ff; }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes bottomSheet {
+        from { opacity: 0; transform: translateY(100%); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   const handleLogin = async () => {
     if (!email || !pw) { setError("Enter your email and password."); return; }
     setBusy(true); setError("");
@@ -230,9 +321,8 @@ function LoginScreen({ onLogin, className }) {
 
   return (
     <div style={S.loginWrap}>
-      {/* decorative blur orb */}
       <div style={{ position:"absolute", width:500, height:500, background:"rgba(123,47,190,0.35)", borderRadius:"50%", filter:"blur(120px)", pointerEvents:"none", top:"10%", left:"50%", transform:"translateX(-50%)" }}/>
-      <div style={{ ...S.loginCard, position:"relative", zIndex:1 }}>
+      <div style={{ ...S.loginCard, position:"relative", zIndex:1, animation:"fadeSlideUp 0.5s ease forwards" }}>
         <div style={S.loginLogo}>
           <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:110 }} />
           <h1 style={S.loginTitle}>{className}</h1>
@@ -255,12 +345,23 @@ function LoginScreen({ onLogin, className }) {
               <Icon name={showPw?"eyeOff":"eye"} size={16}/>
             </button>
           </div>
+          {pw && (
+            <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:8 }}>
+              {[1,2,3].map(i => (
+                <div key={i} style={{ height:4, flex:1, borderRadius:99, transition:"background 0.3s",
+                  background: strength >= i ? strengthColor : "#e9d5ff" }}/>
+              ))}
+              <span style={{ fontSize:11, fontWeight:700, color:strengthColor, minWidth:42, textAlign:"right" }}>
+                {strengthLabel}
+              </span>
+            </div>
+          )}
         </div>
         {error && <p style={S.errorText}>{error}</p>}
-        <button style={{ ...S.btnPrimary, width:"100%", justifyContent:"center", opacity: busy?0.7:1 }}
+        <PrimaryButton style={{ width:"100%", justifyContent:"center", opacity:busy?0.7:1 }}
           onClick={handleLogin} disabled={busy}>
           {busy ? "Signing in…" : "Sign In"}
-        </button>
+        </PrimaryButton>
         <p style={S.loginHint}>Contact the class admin to get your account.</p>
       </div>
     </div>
@@ -269,6 +370,8 @@ function LoginScreen({ onLogin, className }) {
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className, isMobile }) {
+  const [hoveredNav, setHoveredNav] = useState(null);
+
   const navItems = [
     { id:"dashboard", label:"Dashboard", icon:"home" },
     { id:"students",  label:"Students",  icon:"users" },
@@ -316,15 +419,26 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
           </div>
         </div>
         <nav>
-          {navItems.map(item => (
-            <button key={item.id}
-              style={{ ...S.navItem, ...(view===item.id ? S.navActive : {}) }}
-              onClick={() => setView(item.id)}>
-              <Icon name={item.icon} size={17}/>
-              <span style={{ flex:1, textAlign:"left" }}>{item.label}</span>
-              {item.badge > 0 && <span style={S.badge}>{item.badge}</span>}
-            </button>
-          ))}
+          {navItems.map(item => {
+            const isActive  = view === item.id;
+            const isHovered = hoveredNav === item.id;
+            return (
+              <button key={item.id}
+                style={{
+                  ...S.navItem,
+                  ...(isActive ? S.navActive : {}),
+                  ...(!isActive && isHovered ? { background:"rgba(168,85,247,0.15)" } : {}),
+                  transition:"background 0.15s ease",
+                }}
+                onClick={() => setView(item.id)}
+                onMouseEnter={() => setHoveredNav(item.id)}
+                onMouseLeave={() => setHoveredNav(null)}>
+                <Icon name={item.icon} size={17}/>
+                <span style={{ flex:1, textAlign:"left" }}>{item.label}</span>
+                {item.badge > 0 && <span style={S.badge}>{item.badge}</span>}
+              </button>
+            );
+          })}
         </nav>
       </div>
       <button style={S.logoutBtn} onClick={onLogout}>
@@ -336,9 +450,16 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 function Dashboard({ summary, students, expenses, currentUser, setView, onRefresh }) {
-  const isMobile = useIsMobile();
+  const isMobile   = useIsMobile();
+  const [hoveredRow, setHoveredRow] = useState(null);
+
+  const animBalance   = useCountUp(summary.balance);
+  const animCollected = useCountUp(summary.total_collected);
+  const animSpent     = useCountUp(summary.total_spent);
+
   const paidCount      = students.filter(s => s.paid).length;
   const recentExpenses = [...expenses].slice(0, 5);
+  const isLoading      = summary.balance === 0 && students.length === 0;
 
   return (
     <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
@@ -353,10 +474,16 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
       </div>
 
       <div style={{ ...S.statsGrid, gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: isMobile ? 10 : 16 }}>
-        <StatCard icon="dollar" label="Balance"    value={`$${summary.balance.toFixed(2)}`}           color="#7b2fbe" bg="#f5f3ff" note="Available funds" />
-        <StatCard icon="check"  label="Collected"  value={`$${summary.total_collected.toFixed(2)}`}   color="#059669" bg="#ecfdf5" note={`${paidCount}/${students.length} paid`} />
-        <StatCard icon="list"   label="Spent"      value={`$${summary.total_spent.toFixed(2)}`}       color="#d97706" bg="#fffbeb" note="Approved expenses" />
-        <StatCard icon="users"  label="Class Size" value={students.length}                             color="#6d28d9" bg="#f5f3ff" note={`${students.length-paidCount} unpaid`} />
+        {isLoading ? (
+          [1,2,3,4].map(i => <SkeletonCard key={i}/>)
+        ) : (
+          <>
+            <StatCard icon="dollar" label="Balance"    value={`$${animBalance.toFixed(2)}`}         color="#7b2fbe" bg="#f5f3ff" note="Available funds" />
+            <StatCard icon="check"  label="Collected"  value={`$${animCollected.toFixed(2)}`}       color="#059669" bg="#ecfdf5" note={`${paidCount}/${students.length} paid`} />
+            <StatCard icon="list"   label="Spent"      value={`$${animSpent.toFixed(2)}`}           color="#d97706" bg="#fffbeb" note="Approved expenses" />
+            <StatCard icon="users"  label="Class Size" value={students.length}                       color="#6d28d9" bg="#f5f3ff" note={`${students.length-paidCount} unpaid`} />
+          </>
+        )}
       </div>
 
       {currentUser.role==="admin" && summary.pending_count > 0 && (
@@ -371,7 +498,10 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
         <div style={S.card}>
           <h3 style={S.cardTitle}>Recent Expenses</h3>
           {recentExpenses.length===0 ? <p style={S.empty}>No expenses yet.</p> : recentExpenses.map(e => (
-            <div key={e.id} style={S.expenseRow}>
+            <div key={e.id}
+              style={{ ...S.expenseRow, background: hoveredRow===e.id ? "#faf5ff" : "transparent", borderRadius:8, transition:"background 0.15s ease", margin:"0 -8px", padding:"12px 8px" }}
+              onMouseEnter={() => setHoveredRow(e.id)}
+              onMouseLeave={() => setHoveredRow(null)}>
               <div>
                 <div style={S.expenseDesc}>{e.description}</div>
                 <div style={S.expenseMeta}>{e.date?.slice(0,10)} · {e.category}</div>
@@ -417,8 +547,12 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
 }
 
 function StatCard({ icon, label, value, color, bg, note }) {
+  const [hovered, setHovered] = useState(false);
   return (
-    <div style={{ ...S.statCard, borderTop:`3px solid ${color}` }}>
+    <div
+      style={{ ...S.statCard, borderTop:`3px solid ${color}`, transform: hovered ? "scale(1.02)" : "scale(1)", transition:"transform 0.2s ease", cursor:"default" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
       <div style={{ ...S.statIcon, background:bg, color }}><Icon name={icon} size={20}/></div>
       <div style={S.statValue}>{value}</div>
       <div style={S.statLabel}>{label}</div>
@@ -480,9 +614,9 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
           <p style={S.pageSubtitle}>{students.length} students · {students.filter(s=>s.paid).length} paid</p>
         </div>
         {currentUser.role==="admin" && (
-          <button style={S.btnPrimary} onClick={openAdd}>
+          <PrimaryButton onClick={openAdd}>
             <Icon name="plus" size={16}/>{isMobile ? "" : " Add Student"}
-          </button>
+          </PrimaryButton>
         )}
       </div>
 
@@ -604,9 +738,9 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
           </div>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>Cancel</button>
-            <button style={{ ...S.btnPrimary, opacity:busy?0.7:1 }} onClick={handleSave} disabled={busy}>
+            <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={handleSave} disabled={busy}>
               {busy ? "Saving…" : "Save"}
-            </button>
+            </PrimaryButton>
           </div>
         </Modal>
       )}
@@ -617,13 +751,14 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
 // ─── Expenses Panel ───────────────────────────────────────────────────────────
 function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
   const isMobile = useIsMobile();
-  const [showAdd, setShowAdd]   = useState(false);
-  const [filter, setFilter]     = useState("all");
-  const [form, setForm]         = useState({ description:"", amount:"", category:"General", date:new Date().toISOString().split("T")[0] });
-  const [busy, setBusy]         = useState(false);
+  const [showAdd, setShowAdd]         = useState(false);
+  const [filter, setFilter]           = useState("all");
+  const [form, setForm]               = useState({ description:"", amount:"", category:"General", date:new Date().toISOString().split("T")[0] });
+  const [busy, setBusy]               = useState(false);
   const [editExpense, setEditExpense] = useState(null);
-  const [editForm, setEditForm] = useState({ description:"", amount:"", category:"General", date:"" });
-  const [editBusy, setEditBusy] = useState(false);
+  const [editForm, setEditForm]       = useState({ description:"", amount:"", category:"General", date:"" });
+  const [editBusy, setEditBusy]       = useState(false);
+  const [hoveredRow, setHoveredRow]   = useState(null);
 
   const openEdit = (e) => {
     setEditExpense(e);
@@ -673,9 +808,9 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
           <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Expenses</h2>
           <p style={S.pageSubtitle}>{currentUser.role==="admin" ? "All expenses" : "Your submitted expenses"}</p>
         </div>
-        <button style={S.btnPrimary} onClick={() => setShowAdd(true)}>
+        <PrimaryButton onClick={() => setShowAdd(true)}>
           <Icon name="plus" size={16}/>{isMobile ? "" : " Log Expense"}
-        </button>
+        </PrimaryButton>
       </div>
 
       {currentUser.role!=="admin" && (
@@ -696,7 +831,10 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
 
       <div style={S.card}>
         {filtered.length===0 ? <p style={S.empty}>No expenses found.</p> : filtered.map(e => (
-          <div key={e.id} style={S.expenseRow}>
+          <div key={e.id}
+            style={{ ...S.expenseRow, background: hoveredRow===e.id ? "#faf5ff" : "transparent", borderRadius:8, transition:"background 0.15s ease", margin:"0 -8px", padding:"12px 8px" }}
+            onMouseEnter={() => setHoveredRow(e.id)}
+            onMouseLeave={() => setHoveredRow(null)}>
             <div style={{ display:"flex", gap:isMobile?8:12, alignItems:"flex-start", flex:1, minWidth:0 }}>
               {!isMobile && (
                 <div style={{ ...S.catBadge, ...getCatStyle(e.category), flexShrink:0 }}>
@@ -752,9 +890,9 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
           </div>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={() => setEditExpense(null)}>Cancel</button>
-            <button style={{ ...S.btnPrimary, opacity:editBusy?0.7:1 }} onClick={handleEdit} disabled={editBusy}>
+            <PrimaryButton style={{ opacity:editBusy?0.7:1 }} onClick={handleEdit} disabled={editBusy}>
               {editBusy ? "Saving…" : "Save Changes"}
-            </button>
+            </PrimaryButton>
           </div>
         </Modal>
       )}
@@ -794,9 +932,9 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
           )}
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>Cancel</button>
-            <button style={{ ...S.btnPrimary, opacity:busy?0.7:1 }} onClick={handleSubmit} disabled={busy}>
+            <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={handleSubmit} disabled={busy}>
               {busy ? "Submitting…" : "Submit"}
-            </button>
+            </PrimaryButton>
           </div>
         </Modal>
       )}
@@ -810,6 +948,7 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
   const pending = expenses.filter(e => e.status==="pending");
   const history = expenses.filter(e => e.status!=="pending").sort((a,b) => new Date(b.date)-new Date(a.date));
   const [busy, setBusy] = useState(null);
+  const [hoveredRow, setHoveredRow] = useState(null);
 
   const approve = async (id) => {
     setBusy(id+"-approve");
@@ -875,7 +1014,10 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
           <h3 style={{ ...S.sectionLabel, marginBottom:12 }}>Approval History</h3>
           <div style={S.card}>
             {history.map(e => (
-              <div key={e.id} style={S.expenseRow}>
+              <div key={e.id}
+                style={{ ...S.expenseRow, background: hoveredRow===e.id ? "#faf5ff" : "transparent", borderRadius:8, transition:"background 0.15s ease", margin:"0 -8px", padding:"12px 8px" }}
+                onMouseEnter={() => setHoveredRow(e.id)}
+                onMouseLeave={() => setHoveredRow(null)}>
                 <div style={{ flex:1 }}>
                   <div style={S.expenseDesc}>{e.description}</div>
                   <div style={S.expenseMeta}>By {e.submitted_by_name||"Unknown"} · {e.date?.slice(0,10)}</div>
@@ -896,12 +1038,11 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
 // ─── Accounts Panel ───────────────────────────────────────────────────────────
 function AccountsPanel({ users, currentUser, showToast, reload, className, onReset }) {
   const isMobile = useIsMobile();
-  const [showAdd, setShowAdd] = useState(false);
-  const [resetId, setResetId] = useState(null);
-  const [form, setForm]       = useState({ name:"", email:"", password:"", role:"mom" });
-  const [newPw, setNewPw]     = useState("");
-  const [busy, setBusy]       = useState(false);
-
+  const [showAdd, setShowAdd]           = useState(false);
+  const [resetId, setResetId]           = useState(null);
+  const [form, setForm]                 = useState({ name:"", email:"", password:"", role:"mom" });
+  const [newPw, setNewPw]               = useState("");
+  const [busy, setBusy]                 = useState(false);
   const [yearStep, setYearStep]         = useState(0);
   const [newClassName, setNewClassName] = useState("");
   const [confirmText, setConfirmText]   = useState("");
@@ -959,8 +1100,8 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
           <p style={S.pageSubtitle}>Manage classroom mom accounts</p>
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-          <button style={S.btnPrimary} onClick={() => setShowAdd(true)}><Icon name="plus" size={16}/> Add Account</button>
-          <button style={{ ...S.btnPrimary, background:"#ef4444" }} onClick={openYearReset}><Icon name="refresh" size={16}/> New Year</button>
+          <PrimaryButton onClick={() => setShowAdd(true)}><Icon name="plus" size={16}/> Add Account</PrimaryButton>
+          <PrimaryButton style={{ background:"#ef4444" }} onClick={openYearReset}><Icon name="refresh" size={16}/> New Year</PrimaryButton>
         </div>
       </div>
 
@@ -1008,9 +1149,9 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
           </div>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>Cancel</button>
-            <button style={{ ...S.btnPrimary, opacity:busy?0.7:1 }} onClick={handleCreate} disabled={busy}>
+            <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={handleCreate} disabled={busy}>
               {busy ? "Creating…" : "Create Account"}
-            </button>
+            </PrimaryButton>
           </div>
         </Modal>
       )}
@@ -1027,9 +1168,9 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
           </div>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={() => setResetId(null)}>Cancel</button>
-            <button style={{ ...S.btnPrimary, opacity:busy?0.7:1 }} onClick={() => handleReset(resetId)} disabled={busy}>
+            <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={() => handleReset(resetId)} disabled={busy}>
               {busy ? "Resetting…" : "Reset Password"}
-            </button>
+            </PrimaryButton>
           </div>
         </Modal>
       )}
@@ -1048,7 +1189,7 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
           <p style={{ ...S.meta }}>User accounts will be kept. You will set the new class name in the next step.</p>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={closeYearReset}>Cancel</button>
-            <button style={{ ...S.btnPrimary, background:"#ef4444" }} onClick={() => setYearStep(2)}>Continue</button>
+            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setYearStep(2)}>Continue</PrimaryButton>
           </div>
         </Modal>
       )}
@@ -1064,8 +1205,7 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
           </div>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={() => setYearStep(1)}>Back</button>
-            <button style={{ ...S.btnPrimary, background:"#ef4444" }}
-              onClick={() => setYearStep(3)} disabled={!newClassName.trim()}>Continue</button>
+            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setYearStep(3)} disabled={!newClassName.trim()}>Continue</PrimaryButton>
           </div>
         </Modal>
       )}
@@ -1086,12 +1226,12 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
           </div>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={closeYearReset}>Cancel</button>
-            <button
-              style={{ ...S.btnPrimary, background:"#ef4444", opacity:(confirmText==="RESET" && !yearBusy)?1:0.4 }}
+            <PrimaryButton
+              style={{ background:"#ef4444", opacity:(confirmText==="RESET" && !yearBusy)?1:0.4 }}
               onClick={handleYearReset}
               disabled={confirmText !== "RESET" || yearBusy}>
               {yearBusy ? "Resetting…" : "Confirm Reset"}
-            </button>
+            </PrimaryButton>
           </div>
         </Modal>
       )}
@@ -1159,19 +1299,19 @@ const S = {
   sideUser:     { display:"flex", alignItems:"center", gap:10, padding:"12px 16px", borderBottom:"1px solid rgba(192,132,252,0.2)", marginBottom:8 },
   sideUserName: { color:"#e9d5ff", fontSize:13, fontWeight:700 },
   sideUserEmail:{ color:"#a855f7", fontSize:11 },
-  navItem:      { display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 16px", background:"none", border:"none", cursor:"pointer", color:"#e9d5ff", fontSize:14, fontWeight:600, textAlign:"left", transition:"background .15s" },
+  navItem:      { display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 16px", background:"none", border:"none", cursor:"pointer", color:"#e9d5ff", fontSize:14, fontWeight:600, textAlign:"left" },
   navActive:    { background:"rgba(168,85,247,0.25)", color:"#f3e8ff", borderRight:"3px solid #a855f7" },
   badge:        { background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:11, fontWeight:700, minWidth:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 6px" },
   logoutBtn:    { display:"flex", alignItems:"center", gap:8, margin:"8px 12px 0", padding:"9px 14px", background:"rgba(168,85,247,0.15)", border:"none", borderRadius:8, color:"#c084fc", fontSize:13, fontWeight:600, cursor:"pointer" },
 
   // ── Mobile bars ──
-  mobileTopBar:   { position:"fixed", top:0, left:0, right:0, height:56, background:"#1e0038", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200, boxShadow:"0 2px 12px rgba(123,47,190,0.4)" },
-  mobileUserMenu: { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(123,47,190,0.2)", zIndex:300, minWidth:220, border:"1px solid #e9d5ff" },
+  mobileTopBar:     { position:"fixed", top:0, left:0, right:0, height:56, background:"#1e0038", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200, boxShadow:"0 2px 12px rgba(123,47,190,0.4)" },
+  mobileUserMenu:   { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(123,47,190,0.2)", zIndex:300, minWidth:220, border:"1px solid #e9d5ff" },
   mobileMenuLogout: { display:"flex", alignItems:"center", gap:8, width:"100%", padding:"12px 16px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:14, fontWeight:600 },
-  bottomNav:      { position:"fixed", bottom:0, left:0, right:0, height:64, background:"#1e0038", display:"flex", alignItems:"stretch", zIndex:200, borderTop:"1px solid rgba(192,132,252,0.2)" },
-  bottomNavItem:  { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", color:"#e9d5ff", padding:0, gap:2, transition:"background .15s" },
-  bottomNavActive:{ color:"#c084fc", background:"rgba(168,85,247,0.25)" },
-  bottomNavBadge: { position:"absolute", top:-4, right:-8, background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:10, fontWeight:700, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" },
+  bottomNav:        { position:"fixed", bottom:0, left:0, right:0, height:64, background:"#1e0038", display:"flex", alignItems:"stretch", zIndex:200, borderTop:"1px solid rgba(192,132,252,0.2)" },
+  bottomNavItem:    { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", color:"#e9d5ff", padding:0, gap:2, transition:"background 0.15s" },
+  bottomNavActive:  { color:"#c084fc", background:"rgba(168,85,247,0.25)" },
+  bottomNavBadge:   { position:"absolute", top:-4, right:-8, background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:10, fontWeight:700, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" },
 
   // ── Layout ──
   main:         { flex:1, overflow:"auto", background:"#f8f5ff" },
@@ -1199,7 +1339,7 @@ const S = {
   infoBox:      { background:"#faf5ff", border:"1px solid #e9d5ff", borderRadius:8, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, color:"#6b21a8", fontSize:13, marginBottom:12 },
 
   // ── Rows ──
-  expenseRow:   { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:"1px solid #f3f4f6", gap:12 },
+  expenseRow:   { display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid #f3f4f6", gap:12 },
   expenseDesc:  { fontWeight:600, color:"#111827", fontSize:14 },
   expenseMeta:  { color:"#9ca3af", fontSize:12, marginTop:2 },
   expenseAmt:   { fontWeight:700, color:"#2d0057", fontSize:15, whiteSpace:"nowrap" },
