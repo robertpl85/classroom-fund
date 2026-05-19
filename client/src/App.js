@@ -1518,13 +1518,13 @@ const S = {
   mobileTopBar:     { position:"fixed", top:0, left:0, right:0, background:"#1e0038", display:"flex", alignItems:"center", justifyContent:"space-between", paddingTop:"env(safe-area-inset-top)", paddingBottom:0, paddingLeft:16, paddingRight:16, height:"calc(56px + env(safe-area-inset-top))", zIndex:200, boxShadow:"0 2px 12px rgba(123,47,190,0.4)" },
   mobileUserMenu:   { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(123,47,190,0.2)", zIndex:300, minWidth:220, border:"1px solid #e9d5ff" },
   mobileMenuLogout: { display:"flex", alignItems:"center", gap:8, width:"100%", padding:"12px 16px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:14, fontWeight:600 },
-  bottomNav:        { position:"fixed", bottom:0, left:0, right:0, background:"#1e0038", display:"flex", alignItems:"stretch", paddingBottom:"env(safe-area-inset-bottom)", zIndex:200, borderTop:"1px solid rgba(192,132,252,0.2)" },
-  bottomNavItem:    { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"none", border:"none", cursor:"pointer", color:"#e9d5ff", padding:0, gap:2, transition:"background 0.15s" },
+  bottomNav:        { position:"fixed", bottom:0, left:0, right:0, display:"flex", background:"#1e0038", borderTop:"1px solid rgba(168,85,247,0.3)", paddingBottom:"env(safe-area-inset-bottom)", zIndex:100, height:"auto" },
+  bottomNavItem:    { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"10px 0", background:"none", border:"none", cursor:"pointer", color:"#e9d5ff", gap:2, transition:"background 0.15s" },
   bottomNavActive:  { color:"#c084fc", background:"rgba(168,85,247,0.25)" },
   bottomNavBadge:   { position:"absolute", top:-4, right:-8, background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:10, fontWeight:700, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" },
 
   // ── Layout ──
-  main:         { flex:1, overflow:"auto", background:"#f8f5ff", paddingTop:0, paddingLeft:"env(safe-area-inset-left)", paddingRight:"env(safe-area-inset-right)", paddingBottom:"env(safe-area-inset-bottom)" },
+  main:         { flex:1, overflow:"auto", background:"#f8f5ff", paddingTop:0, paddingLeft:"env(safe-area-inset-left)", paddingRight:"env(safe-area-inset-right)" },
   page:         { padding:"28px 32px", maxWidth:1000, margin:"0 auto" },
   pageHeader:   { display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24, gap:16 },
   pageTitle:    { fontSize:24, fontWeight:800, color:"#2d0057", margin:0 },
