@@ -204,7 +204,7 @@ export default function App() {
       <Sidebar currentUser={currentUser} view={view} setView={setView}
         pendingCount={currentUser.role === "admin" ? pendingCount : 0}
         onLogout={handleLogout} className={className} isMobile={isMobile} />
-      <main style={{ ...S.main, ...(isMobile ? { paddingTop:56, paddingBottom:70 } : {}) }}>
+      <main style={{ ...S.main, ...(isMobile ? { paddingTop:"calc(56px + env(safe-area-inset-top))", paddingBottom:"calc(64px + env(safe-area-inset-bottom))" } : {}) }}>
         {/* keyed wrapper triggers fadeIn animation on every view change */}
         <div key={view} style={{ animation:"fadeIn 0.3s ease forwards" }}>
           {view === "dashboard" && (
@@ -1515,7 +1515,7 @@ const S = {
   logoutBtn:    { display:"flex", alignItems:"center", gap:8, margin:"8px 12px 0", padding:"9px 14px", background:"rgba(168,85,247,0.15)", border:"none", borderRadius:8, color:"#c084fc", fontSize:13, fontWeight:600, cursor:"pointer" },
 
   // ── Mobile bars ──
-  mobileTopBar:     { position:"fixed", top:0, left:0, right:0, background:"#1e0038", display:"flex", alignItems:"center", justifyContent:"space-between", paddingTop:"calc(env(safe-area-inset-top) + 12px)", paddingBottom:12, paddingLeft:16, paddingRight:16, zIndex:200, boxShadow:"0 2px 12px rgba(123,47,190,0.4)" },
+  mobileTopBar:     { position:"fixed", top:0, left:0, right:0, background:"#1e0038", display:"flex", alignItems:"center", justifyContent:"space-between", paddingTop:"env(safe-area-inset-top)", paddingBottom:0, paddingLeft:16, paddingRight:16, height:"calc(56px + env(safe-area-inset-top))", zIndex:200, boxShadow:"0 2px 12px rgba(123,47,190,0.4)" },
   mobileUserMenu:   { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(123,47,190,0.2)", zIndex:300, minWidth:220, border:"1px solid #e9d5ff" },
   mobileMenuLogout: { display:"flex", alignItems:"center", gap:8, width:"100%", padding:"12px 16px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:14, fontWeight:600 },
   bottomNav:        { position:"fixed", bottom:0, left:0, right:0, background:"#1e0038", display:"flex", alignItems:"stretch", paddingBottom:"env(safe-area-inset-bottom)", zIndex:200, borderTop:"1px solid rgba(192,132,252,0.2)" },
@@ -1524,7 +1524,7 @@ const S = {
   bottomNavBadge:   { position:"absolute", top:-4, right:-8, background:"#7b2fbe", color:"#fff", borderRadius:99, fontSize:10, fontWeight:700, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" },
 
   // ── Layout ──
-  main:         { flex:1, overflow:"auto", background:"#f8f5ff", paddingTop:"env(safe-area-inset-top)", paddingLeft:"env(safe-area-inset-left)", paddingRight:"env(safe-area-inset-right)", paddingBottom:"env(safe-area-inset-bottom)" },
+  main:         { flex:1, overflow:"auto", background:"#f8f5ff", paddingTop:0, paddingLeft:"env(safe-area-inset-left)", paddingRight:"env(safe-area-inset-right)", paddingBottom:"env(safe-area-inset-bottom)" },
   page:         { padding:"28px 32px", maxWidth:1000, margin:"0 auto" },
   pageHeader:   { display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24, gap:16 },
   pageTitle:    { fontSize:24, fontWeight:800, color:"#2d0057", margin:0 },
