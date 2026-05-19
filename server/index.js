@@ -1,9 +1,36 @@
 require('dotenv').config();
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
+const express   = require('express');
+const cors      = require('cors');
+const path      = require('path');
+const helmet    = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
+
+// ── Security Headers ──────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false,   // disable CSP — would break the React app
+  crossOriginEmbedderPolicy: false,
+}));
+
+// ── Rate Limiters ─────────────────────────────────────────────
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests. Please slow down.' },
+});
+
+// Apply login limiter before the general API limiter
+app.use('/api/auth/login', loginLimiter);
+app.use('/api', apiLimiter);
 
 // ── Middleware ────────────────────────────────────────────────
 app.use(cors({
@@ -11,6 +38,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(require('./middleware/sanitize'));
 
 // ── API Routes ────────────────────────────────────────────────
 app.use('/api/auth',     require('./routes/auth'));

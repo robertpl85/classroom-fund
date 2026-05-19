@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db     = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware');
+const { logAction } = require('../middleware/audit');
 
 router.use(requireAuth);
 
@@ -16,8 +17,7 @@ router.get('/', async (req, res) => {
       LEFT JOIN users su ON e.submitted_by = su.id
       LEFT JOIN users au ON e.approved_by  = au.id
       ORDER BY e.date DESC, e.created_at DESC`;
-    const params = [];
-    const { rows } = await db.query(query, params);
+    const { rows } = await db.query(query);
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -58,6 +58,7 @@ router.patch('/:id/approve', requireAdmin, async (req, res) => {
     );
     if (!rows.length)
       return res.status(404).json({ error: 'Expense not found or already processed' });
+    logAction(req.user.id, 'APPROVE_EXPENSE', rows[0].description, req.ip);
     res.json(rows[0]);
   } catch (err) {
     console.error(err);
@@ -70,18 +71,13 @@ router.patch('/:id/reject', requireAdmin, async (req, res) => {
   try {
     const { rows } = await db.query(
       `UPDATE expenses SET status='rejected'
-       WHERE id=$2 AND status='pending' RETURNING *`,  // intentional: $2 only — no approved_by on reject
-      [req.user.id, req.params.id]
-    );
-    // fix param count
-    const { rows: r } = await db.query(
-      `UPDATE expenses SET status='rejected'
        WHERE id=$1 AND status='pending' RETURNING *`,
       [req.params.id]
     );
-    if (!r.length)
+    if (!rows.length)
       return res.status(404).json({ error: 'Expense not found or already processed' });
-    res.json(r[0]);
+    logAction(req.user.id, 'REJECT_EXPENSE', rows[0].description, req.ip);
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

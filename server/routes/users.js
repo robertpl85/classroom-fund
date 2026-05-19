@@ -6,6 +6,15 @@ const { requireAuth, requireAdmin } = require('../middleware');
 // All routes require auth
 router.use(requireAuth);
 
+function validatePassword(password) {
+  if (password.length < 8) return 'Password must be at least 8 characters';
+  if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter';
+  if (!/[0-9]/.test(password)) return 'Password must contain at least one number';
+  if (!/[!@#$%^&*()_+\-=\[\]{};:,.<>?]/.test(password))
+    return 'Password must contain at least one special character';
+  return null;
+}
+
 // GET /api/users — list all users (admin only)
 router.get('/', requireAdmin, async (req, res) => {
   try {
@@ -24,6 +33,9 @@ router.post('/', requireAdmin, async (req, res) => {
   const { name, email, password, role = 'mom' } = req.body;
   if (!name || !email || !password)
     return res.status(400).json({ error: 'Name, email, and password are required' });
+
+  const pwError = validatePassword(password);
+  if (pwError) return res.status(400).json({ error: pwError });
 
   try {
     const hashed = await bcrypt.hash(password, 10);
@@ -45,8 +57,10 @@ router.post('/', requireAdmin, async (req, res) => {
 // PATCH /api/users/:id/password — reset password (admin only)
 router.patch('/:id/password', requireAdmin, async (req, res) => {
   const { password } = req.body;
-  if (!password || password.length < 6)
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (!password) return res.status(400).json({ error: 'Password is required' });
+
+  const pwError = validatePassword(password);
+  if (pwError) return res.status(400).json({ error: pwError });
 
   try {
     const hashed = await bcrypt.hash(password, 10);

@@ -72,6 +72,16 @@ INSERT INTO expenses (description, amount, category, date, submitted_by, status,
   ('Valentine''s Day Cards & Candy',31.20, 'Holiday', '2026-02-10', 2, 'pending',  NULL)
 ON CONFLICT DO NOTHING;
 
+-- Audit Log
+CREATE TABLE IF NOT EXISTS audit_log (
+  id         SERIAL PRIMARY KEY,
+  user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  action     VARCHAR(100) NOT NULL,
+  details    TEXT,
+  ip_address VARCHAR(45),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Settings
 CREATE TABLE IF NOT EXISTS settings (
   key   VARCHAR(100) PRIMARY KEY,
