@@ -8,7 +8,7 @@ router.post('/reset', requireAuth, requireAdmin, async (req, res) => {
   if (!class_name) return res.status(400).json({ error: 'class_name is required' });
   try {
     await db.query('DELETE FROM expenses');
-    await db.query('DELETE FROM students');
+    await db.query('UPDATE students SET paid = false, amount = 0');
     await db.query("UPDATE settings SET value = $1 WHERE key = 'class_name'", [class_name]);
     res.json({ message: 'Reset complete', class_name });
   } catch (err) {

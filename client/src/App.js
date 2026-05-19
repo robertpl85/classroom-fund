@@ -388,7 +388,7 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
     { id:"expenses",  label:"Expenses",  icon:"dollar" },
     ...(currentUser.role==="admin" ? [
       { id:"approvals", label:"Approvals", icon:"check", badge: pendingCount },
-      { id:"accounts",  label:"Accounts",  icon:"shield" },
+      { id:"accounts",  label:"Admin",  icon:"shield" },
     ] : []),
   ];
 
@@ -1199,12 +1199,12 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
     <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
       <div style={{ ...S.pageHeader, ...(isMobile ? { flexDirection:"column", alignItems:"flex-start", gap:10 } : {}) }}>
         <div>
-          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Accounts</h2>
-          <p style={S.pageSubtitle}>Manage classroom mom accounts</p>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Admin</h2>
+          <p style={S.pageSubtitle}>Admin Panel</p>
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           <PrimaryButton onClick={() => setShowAdd(true)}><Icon name="plus" size={16}/> Add Account</PrimaryButton>
-          <PrimaryButton style={{ background:"#ef4444" }} onClick={openYearReset}><Icon name="refresh" size={16}/> New Year</PrimaryButton>
+          <PrimaryButton style={{ background:"#ef4444" }} onClick={openYearReset}><Icon name="refresh" size={16}/> New School Year</PrimaryButton>
         </div>
       </div>
 
@@ -1386,12 +1386,11 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
             <Icon name="alert" size={16}/>
             <strong>This action cannot be undone.</strong>
           </div>
-          <p style={{ ...S.meta, marginBottom:8 }}>The following will be permanently deleted:</p>
-          <ul style={{ paddingLeft:20, color:"#374151", lineHeight:1.8, marginBottom:16 }}>
-            <li>All student records and payment information</li>
-            <li>All expense records</li>
-          </ul>
-          <p style={{ ...S.meta }}>User accounts will be kept. You will set the new class name in the next step.</p>
+          <p style={{ ...S.meta, marginBottom:8, lineHeight:1.6 }}>
+            This will <strong>mark all students as unpaid</strong> and <strong>delete all expenses</strong>.
+            Student records will be kept. User accounts will be kept.
+            This cannot be undone.
+          </p>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={closeYearReset}>Cancel</button>
             <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setYearStep(2)}>Continue</PrimaryButton>
@@ -1419,7 +1418,7 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
         <Modal title="Confirm Reset" onClose={closeYearReset}>
           <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
             <Icon name="alert" size={16}/>
-            <span>All students and expenses will be deleted. This cannot be undone.</span>
+            <span>All students will be marked unpaid and all expenses deleted. This cannot be undone.</span>
           </div>
           <p style={{ ...S.meta, marginBottom:12 }}>
             Type <strong>RESET</strong> to confirm and start the new school year as <strong>{newClassName}</strong>.
