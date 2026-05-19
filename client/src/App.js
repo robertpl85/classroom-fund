@@ -184,10 +184,8 @@ export default function App() {
 
   const handleReset = (newClassName) => {
     setClassName(newClassName);
-    setStudents([]);
-    setExpenses([]);
-    setSummary({ balance: 0, total_collected: 0, total_spent: 0, pending_count: 0 });
     setView("dashboard");
+    loadAll();
   };
 
   if (loading) return <Spinner />;
