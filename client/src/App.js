@@ -38,6 +38,13 @@ function getPasswordStrength(pw) {
   return 1;
 }
 
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return digits.slice(0,3) + '-' + digits.slice(3);
+  return digits.slice(0,3) + '-' + digits.slice(3,6) + '-' + digits.slice(6);
+}
+
 const CATEGORIES = ["Holiday", "Craft", "Snacks", "Field Trip", "Birthday", "General", "Other"];
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -564,12 +571,15 @@ function StatCard({ icon, label, value, color, bg, note }) {
 // ─── Students Panel ───────────────────────────────────────────────────────────
 function StudentsPanel({ students, currentUser, showToast, reload }) {
   const isMobile = useIsMobile();
-  const [search, setSearch]   = useState("");
-  const [showAdd, setShowAdd] = useState(false);
-  const [editSt, setEditSt]   = useState(null);
-  const [filter, setFilter]   = useState("all");
-  const [form, setForm]       = useState({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 });
-  const [busy, setBusy]       = useState(false);
+  const [search, setSearch]       = useState("");
+  const [showAdd, setShowAdd]     = useState(false);
+  const [editSt, setEditSt]       = useState(null);
+  const [filter, setFilter]       = useState("all");
+  const [form, setForm]           = useState({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 });
+  const [busy, setBusy]           = useState(false);
+  const [emailValid, setEmailValid] = useState(null);
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const filtered = students.filter(s => {
     const m = s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -579,11 +589,15 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
     return m;
   });
 
-  const openAdd  = () => { setForm({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 }); setEditSt(null); setShowAdd(true); };
-  const openEdit = s  => { setForm({ name:s.name, parent_email:s.parent_email, parent_phone:s.parent_phone||"", paid:s.paid, amount:s.amount }); setEditSt(s); setShowAdd(true); };
+  const openAdd  = () => { setForm({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 }); setEditSt(null); setEmailValid(null); setShowAdd(true); };
+  const openEdit = s  => { setForm({ name:s.name, parent_email:s.parent_email, parent_phone:s.parent_phone||"", paid:s.paid, amount:s.amount }); setEditSt(s); setEmailValid(s.parent_email ? emailRegex.test(s.parent_email) : null); setShowAdd(true); };
 
   const handleSave = async () => {
     if (!form.name || !form.parent_email) { showToast("Name and email are required.", "error"); return; }
+    if (form.parent_email && !emailRegex.test(form.parent_email)) {
+      showToast("Please enter a valid email address.", "error");
+      return;
+    }
     setBusy(true);
     try {
       if (editSt) { await api.updateStudent(editSt.id, form); showToast("Student updated!"); }
@@ -720,12 +734,31 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
 
       {showAdd && (
         <Modal title={editSt ? "Edit Student" : "Add Student"} onClose={() => setShowAdd(false)}>
-          {[["name","Student Name"],["parent_email","Parent Email"],["parent_phone","Parent Phone"]].map(([f,l]) => (
-            <div key={f} style={S.fieldGroup}>
-              <label style={S.label}>{l}</label>
-              <input style={S.input} value={form[f]} onChange={e => setForm({...form,[f]:e.target.value})}/>
-            </div>
-          ))}
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Student Name</label>
+            <input style={S.input} value={form.name}
+              onChange={e => setForm({...form, name: e.target.value})}/>
+          </div>
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Parent Email</label>
+            <input
+              style={{ ...S.input, border: emailValid === null ? "1.5px solid #c084fc" : emailValid ? "1.5px solid #10b981" : "1.5px solid #ef4444" }}
+              type="email"
+              value={form.parent_email}
+              onChange={e => {
+                const val = e.target.value;
+                setForm({...form, parent_email: val});
+                setEmailValid(val ? emailRegex.test(val) : null);
+              }}
+              placeholder="parent@example.com"
+            />
+          </div>
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Parent Phone</label>
+            <input style={S.input} value={form.parent_phone}
+              placeholder="555-555-5555"
+              onChange={e => setForm({...form, parent_phone: formatPhone(e.target.value)})}/>
+          </div>
           <div style={S.fieldGroup}>
             <label style={S.label}>Contribution Amount ($)</label>
             <input style={S.input} type="number" value={form.amount}
