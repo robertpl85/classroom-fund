@@ -1,0 +1,24 @@
+{
+  "short_name": "Class Funds",
+  "name": "Pierwsza Klasa - Classroom Fund Manager",
+  "description": "Emilia Plater Polish School Classroom Fund Manager",
+  "icons": [
+    {
+      "src": "logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1e0038",
+  "background_color": "#1e0038",
+  "orientation": "portrait"
+}
