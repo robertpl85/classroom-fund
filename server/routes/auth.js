@@ -2,38 +2,8 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const db     = require('../db');
-const { requireAuth, requireAdmin } = require('../middleware');
-const { logAction } = require('../middleware/audit');
-
-// ── Per-email rate limiting ───────────────────────────────────
-const loginAttempts = new Map();
-
-function checkRateLimit(email) {
-  const now        = Date.now();
-  const windowMs   = 15 * 60 * 1000; // 15 minutes
-  const maxAttempts = 10;
-
-  if (!loginAttempts.has(email)) {
-    loginAttempts.set(email, { count: 1, resetTime: now + windowMs });
-    return null;
-  }
-
-  const record = loginAttempts.get(email);
-
-  if (now > record.resetTime) {
-    loginAttempts.set(email, { count: 1, resetTime: now + windowMs });
-    return null;
-  }
-
-  record.count++;
-
-  if (record.count > maxAttempts) {
-    const minutesLeft = Math.ceil((record.resetTime - now) / 60000);
-    return `Too many login attempts. Please try again in ${minutesLeft} minutes.`;
-  }
-
-  return null;
-}
+const { requireAuth } = require('../middleware');
+const { logAction }   = require('../middleware/audit');
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -41,24 +11,47 @@ router.post('/login', async (req, res) => {
   if (!email || !password)
     return res.status(400).json({ error: 'Email and password required' });
 
-  const rateLimitError = checkRateLimit(email.toLowerCase());
-  if (rateLimitError) return res.status(429).json({ error: rateLimitError });
-
   try {
     const { rows } = await db.query(
       'SELECT * FROM users WHERE email = $1', [email.toLowerCase()]
     );
     const user = rows[0];
+
+    // Unknown email — don't reveal whether the account exists
     if (!user) {
       logAction(null, 'FAILED_LOGIN', email, req.ip);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Check if account is locked
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      const minutesLeft = Math.ceil((new Date(user.locked_until) - Date.now()) / 60000);
+      return res.status(429).json({
+        error: `Account is temporarily locked. Please try again in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}.`
+      });
+    }
+
     const match = await bcrypt.compare(password, user.password);
+
     if (!match) {
+      // Increment failed_attempts; lock the account when it hits 3
+      const newCount = (user.failed_attempts || 0) + 1;
+      const lockedUntil = newCount >= 3 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+
+      await db.query(
+        'UPDATE users SET failed_attempts = $1, locked_until = $2 WHERE id = $3',
+        [newCount, lockedUntil, user.id]
+      );
+
       logAction(null, 'FAILED_LOGIN', email, req.ip);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+
+    // Successful login — clear lockout state
+    await db.query(
+      'UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = $1',
+      [user.id]
+    );
 
     const token = jwt.sign(
       { id: user.id, name: user.name, email: user.email, role: user.role },
@@ -66,7 +59,6 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    loginAttempts.delete(email.toLowerCase());
     logAction(user.id, 'LOGIN', 'Successful login', req.ip);
 
     res.json({
