@@ -16,7 +16,8 @@ app.use(helmet({
 // ── Rate Limiters ─────────────────────────────────────────────
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: 10,
+  keyGenerator: (req) => req.body.email || req.ip,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
