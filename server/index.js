@@ -14,23 +14,14 @@ app.use(helmet({
 }));
 
 // ── Rate Limiters ─────────────────────────────────────────────
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
-  keyGenerator: (req) => req.body.email || req.ip,
-  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
+// Login rate limiting is handled per-email inside routes/auth.js
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { error: 'Too many requests. Please slow down.' },
 });
 
-// Apply login limiter before the general API limiter
-app.use('/api/auth/login', loginLimiter);
+// General API rate limiter (login rate limiting is handled per-email in routes/auth.js)
 app.use('/api', apiLimiter);
 
 // ── Middleware ────────────────────────────────────────────────
