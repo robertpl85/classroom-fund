@@ -553,6 +553,28 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
   );
 }
 
+function PasswordChecklist({ password }) {
+  if (!password) return null;
+  const checks = [
+    { label: 'At least 8 characters',             met: password.length >= 8 },
+    { label: 'One uppercase letter (A–Z)',          met: /[A-Z]/.test(password) },
+    { label: 'One number (0–9)',                   met: /[0-9]/.test(password) },
+    { label: 'One special character (!@#$%^&*…)', met: /[!@#$%^&*()_+\-=\[\]{};:,.<>?]/.test(password) },
+  ];
+  return (
+    <div style={{ marginTop:8, marginBottom:4 }}>
+      {checks.map(({ label, met }) => (
+        <div key={label} style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, marginBottom:3 }}>
+          <span style={{ color: met ? '#10b981' : '#ef4444', fontWeight:800, fontSize:13, lineHeight:1 }}>
+            {met ? '✓' : '✗'}
+          </span>
+          <span style={{ color: met ? '#10b981' : '#6b7280' }}>{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function StatCard({ icon, label, value, color, bg, note }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -1109,7 +1131,7 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
   };
 
   const handleReset = async (id) => {
-    if (!newPw || newPw.length < 6) { showToast("Password must be at least 6 characters.", "error"); return; }
+    if (!newPw || newPw.length < 8) { showToast("Password must be at least 8 characters.", "error"); return; }
     setBusy(true);
     try {
       await api.resetPassword(id, newPw);
@@ -1166,13 +1188,22 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
 
       {showAdd && (
         <Modal title="Create Account" onClose={() => setShowAdd(false)}>
-          {[["name","Full Name"],["email","Email Address"],["password","Temporary Password"]].map(([f,l]) => (
-            <div key={f} style={S.fieldGroup}>
-              <label style={S.label}>{l}</label>
-              <input style={S.input} type={f==="password"?"password":"text"}
-                value={form[f]} onChange={e => setForm({...form,[f]:e.target.value})}/>
-            </div>
-          ))}
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Full Name</label>
+            <input style={S.input} value={form.name}
+              onChange={e => setForm({...form, name: e.target.value})}/>
+          </div>
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Email Address</label>
+            <input style={S.input} type="email" value={form.email}
+              onChange={e => setForm({...form, email: e.target.value})}/>
+          </div>
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Temporary Password</label>
+            <input style={S.input} type="password" value={form.password}
+              onChange={e => setForm({...form, password: e.target.value})}/>
+            <PasswordChecklist password={form.password}/>
+          </div>
           <div style={S.fieldGroup}>
             <label style={S.label}>Role</label>
             <select style={S.input} value={form.role} onChange={e => setForm({...form, role:e.target.value})}>
@@ -1195,9 +1226,10 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
             New password for: <strong>{users.find(u=>u.id===resetId)?.name}</strong>
           </p>
           <div style={S.fieldGroup}>
-            <label style={S.label}>New Password (min 6 characters)</label>
+            <label style={S.label}>New Password</label>
             <input style={S.input} type="password" value={newPw}
               onChange={e => setNewPw(e.target.value)} placeholder="Enter new password"/>
+            <PasswordChecklist password={newPw}/>
           </div>
           <div style={S.modalBtns}>
             <button style={S.btnSecondary} onClick={() => setResetId(null)}>Cancel</button>
