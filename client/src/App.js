@@ -68,6 +68,7 @@ const Icon = ({ name, size = 18 }) => {
     eyeOff:  "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24 M1 1l22 22",
     tag:     "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z M7 7h.01",
     refresh: "M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0114.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0020.49 15",
+    unlock:  "M8 11V7a4 4 0 118 0m0 0v4 M5 11h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z",
   };
   const d = icons[name];
   if (!d) return null;
@@ -1141,6 +1142,14 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
     finally { setBusy(false); }
   };
 
+  const handleUnlock = async (u) => {
+    try {
+      await api.unlockUser(u.id);
+      showToast(`Account unlocked for ${u.name}`);
+      reload();
+    } catch (err) { showToast(err.message, "error"); }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this account?")) return;
     try { await api.deleteUser(id); showToast("Account removed."); reload(); }
@@ -1161,29 +1170,43 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
       </div>
 
       <div style={S.card}>
-        {users.map(u => (
-          <div key={u.id} style={S.userRow}>
-            <div style={{ display:"flex", gap:12, alignItems:"center", flex:1, minWidth:0 }}>
-              <div style={S.avatar}>{u.name[0]}</div>
-              <div style={{ minWidth:0 }}>
-                <div style={{ fontWeight:600, color:"#111827", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {u.name} {u.role==="admin" && <span style={S.adminTag}>Admin</span>}
+        {users.map(u => {
+          const isLocked = u.locked_until && new Date(u.locked_until) > new Date();
+          return (
+            <div key={u.id} style={S.userRow}>
+              <div style={{ display:"flex", gap:12, alignItems:"center", flex:1, minWidth:0 }}>
+                <div style={S.avatar}>{u.name[0]}</div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontWeight:600, color:"#111827", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {u.name}
+                    {u.role==="admin" && <span style={S.adminTag}>Admin</span>}
+                    {isLocked && (
+                      <span style={{ background:"#fee2e2", color:"#991b1b", padding:"2px 8px", borderRadius:99, fontSize:11, fontWeight:700, marginLeft:6 }}>
+                        🔒 Locked
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ ...S.meta, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{u.email}</div>
                 </div>
-                <div style={{ ...S.meta, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{u.email}</div>
+              </div>
+              <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+                {isLocked && (
+                  <button style={{ ...S.iconBtn, color:"#f59e0b" }} onClick={() => handleUnlock(u)} title="Unlock Account">
+                    <Icon name="unlock" size={15}/>
+                  </button>
+                )}
+                <button style={S.iconBtn} onClick={() => { setResetId(u.id); setNewPw(""); }} title="Reset Password">
+                  <Icon name="key" size={15}/>
+                </button>
+                {u.id !== currentUser.id && (
+                  <button style={{ ...S.iconBtn, color:"#ef4444" }} onClick={() => handleDelete(u.id)}>
+                    <Icon name="trash" size={15}/>
+                  </button>
+                )}
               </div>
             </div>
-            <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-              <button style={S.iconBtn} onClick={() => { setResetId(u.id); setNewPw(""); }} title="Reset Password">
-                <Icon name="key" size={15}/>
-              </button>
-              {u.id !== currentUser.id && (
-                <button style={{ ...S.iconBtn, color:"#ef4444" }} onClick={() => handleDelete(u.id)}>
-                  <Icon name="trash" size={15}/>
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {showAdd && (

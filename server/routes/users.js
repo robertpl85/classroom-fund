@@ -19,7 +19,7 @@ function validatePassword(password) {
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT id, name, email, role, created_at FROM users ORDER BY role DESC, name'
+      'SELECT id, name, email, role, failed_attempts, locked_until, created_at FROM users ORDER BY role DESC, name'
     );
     res.json(rows);
   } catch (err) {
@@ -70,6 +70,21 @@ router.patch('/:id/password', requireAdmin, async (req, res) => {
     );
     if (!rowCount) return res.status(404).json({ error: 'User not found' });
     res.json({ message: 'Password updated' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PATCH /api/users/:id/unlock — unlock a locked account (admin only)
+router.patch('/:id/unlock', requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = $1 RETURNING id, name, email, role',
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

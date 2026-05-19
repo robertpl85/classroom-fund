@@ -50,5 +50,6 @@ export const api = {
   getUsers:       ()        => request('GET',    '/users'),
   createUser:     (data)    => request('POST',   '/users', data),
   resetPassword:  (id, pw)  => request('PATCH',  `/users/${id}/password`, { password: pw }),
+  unlockUser:     (id)      => request('PATCH',  `/users/${id}/unlock`),
   deleteUser:     (id)      => request('DELETE', `/users/${id}`),
 };

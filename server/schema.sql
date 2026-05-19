@@ -10,8 +10,10 @@ CREATE TABLE IF NOT EXISTS users (
   name      VARCHAR(100) NOT NULL,
   email     VARCHAR(150) UNIQUE NOT NULL,
   password  VARCHAR(255) NOT NULL,
-  role      VARCHAR(20) NOT NULL DEFAULT 'mom' CHECK (role IN ('admin', 'mom')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  role             VARCHAR(20) NOT NULL DEFAULT 'mom' CHECK (role IN ('admin', 'mom')),
+  failed_attempts  INTEGER NOT NULL DEFAULT 0,
+  locked_until     TIMESTAMPTZ DEFAULT NULL,
+  created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Students
