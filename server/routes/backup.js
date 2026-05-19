@@ -42,7 +42,7 @@ router.post('/create', (req, res) => {
   const filename = `classroom_fund_${date}_${time}.sql`;
   const filepath = path.join(BACKUP_DIR, filename);
 
-  const cmd = `PGPASSWORD=${process.env.DB_PASSWORD} pg_dump -U ${process.env.DB_USER} -h ${process.env.DB_HOST} ${process.env.DB_NAME} > ${filepath}`;
+  const cmd = `PGPASSWORD=${process.env.DB_PASSWORD} pg_dump --clean --if-exists -U ${process.env.DB_USER} -h ${process.env.DB_HOST} ${process.env.DB_NAME} > ${filepath}`;
 
   exec(cmd, (err) => {
     if (err) {
@@ -68,11 +68,13 @@ router.post('/restore', (req, res) => {
     return res.status(404).json({ error: 'Backup file not found' });
   }
 
-  const restoreCmd = `
-    PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} -c "
-      TRUNCATE TABLE expenses, students, settings, users RESTART IDENTITY CASCADE;
-    " && PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} < ${filepath}
-  `;
+  const restoreCmd = `PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} -c "
+  DROP TABLE IF EXISTS expenses CASCADE;
+  DROP TABLE IF EXISTS students CASCADE;
+  DROP TABLE IF EXISTS settings CASCADE;
+  DROP TABLE IF EXISTS audit_log CASCADE;
+  DROP TABLE IF EXISTS users CASCADE;
+" && PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} < ${filepath}`;
 
   exec(restoreCmd, (err, stdout, stderr) => {
     if (err) {

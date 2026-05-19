@@ -13,7 +13,7 @@ function runBackup() {
   const filename = `classroom_fund_${date}.sql`;
   const filepath = path.join(BACKUP_DIR, filename);
 
-  const cmd = `PGPASSWORD=${process.env.DB_PASSWORD} pg_dump -U ${process.env.DB_USER} -h ${process.env.DB_HOST} ${process.env.DB_NAME} > ${filepath}`;
+  const cmd = `PGPASSWORD=${process.env.DB_PASSWORD} pg_dump --clean --if-exists -U ${process.env.DB_USER} -h ${process.env.DB_HOST} ${process.env.DB_NAME} > ${filepath}`;
 
   exec(cmd, (err) => {
     if (err) { console.error('Backup failed:', err); return; }
