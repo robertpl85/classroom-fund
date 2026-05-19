@@ -70,7 +70,7 @@ router.post('/restore', (req, res) => {
 
   const restoreCmd = `
     PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} -c "
-      TRUNCATE TABLE expenses, students, settings, users, audit_log RESTART IDENTITY CASCADE;
+      TRUNCATE TABLE expenses, students, settings, users RESTART IDENTITY CASCADE;
     " && PGPASSWORD=${process.env.DB_PASSWORD} psql -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -d ${process.env.DB_NAME} < ${filepath}
   `;
 
