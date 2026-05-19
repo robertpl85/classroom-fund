@@ -1197,18 +1197,26 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
 
   return (
     <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
-      <div style={{ ...S.pageHeader, ...(isMobile ? { flexDirection:"column", alignItems:"flex-start", gap:10 } : {}) }}>
+      <div style={{ ...S.pageHeader, ...(isMobile ? { marginBottom:16 } : {}) }}>
         <div>
           <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Admin</h2>
           <p style={S.pageSubtitle}>Admin Panel</p>
         </div>
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-          <PrimaryButton onClick={() => setShowAdd(true)}><Icon name="plus" size={16}/> Add Account</PrimaryButton>
-          <PrimaryButton style={{ background:"#ef4444" }} onClick={openYearReset}><Icon name="refresh" size={16}/> New School Year</PrimaryButton>
-        </div>
+        <PrimaryButton style={{ background:"#ef4444" }} onClick={openYearReset}>
+          <Icon name="refresh" size={16}/> New School Year
+        </PrimaryButton>
       </div>
 
-      <div style={S.card}>
+      <div style={{ ...S.card, marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <Icon name="users" size={18}/>
+            <h3 style={{ ...S.cardTitle, margin:0 }}>Accounts</h3>
+          </div>
+          <PrimaryButton onClick={() => setShowAdd(true)}>
+            <Icon name="plus" size={16}/> Add Account
+          </PrimaryButton>
+        </div>
         {users.map(u => {
           const isLocked = u.locked_until && new Date(u.locked_until) > new Date();
           return (
@@ -1303,7 +1311,7 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
       )}
 
       {/* ── Backup & Restore ── */}
-      <div style={{ ...S.card, marginTop:24 }}>
+      <div style={S.card}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <Icon name="database" size={18} />
