@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "./api";
 import translations from "./translations";
 
@@ -652,6 +652,18 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
   const [form, setForm]           = useState({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 });
   const [busy, setBusy]           = useState(false);
   const [emailValid, setEmailValid] = useState(null);
+  const [showSearch, setShowSearch] = useState(true);
+  const lastScrollY = useRef(0);
+
+  const handleScroll = useCallback((e) => {
+    const currentScrollY = e.target.scrollTop;
+    if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
+      setShowSearch(false);
+    } else if (currentScrollY < lastScrollY.current) {
+      setShowSearch(true);
+    }
+    lastScrollY.current = currentScrollY;
+  }, []);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -708,9 +720,19 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
         )}
       </div>
 
-      <div style={{ ...S.filterBar, marginBottom:12 }}>
-        <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder={t.searchStudents}
-          value={search} onChange={e => setSearch(e.target.value)}/>
+      <div style={{
+        overflow: "hidden",
+        maxHeight: showSearch ? "120px" : "0px",
+        opacity: showSearch ? 1 : 0,
+        transition: "max-height 0.3s ease, opacity 0.2s ease",
+        marginBottom: showSearch ? 16 : 0,
+      }}>
+        <input
+          style={{ ...S.input, width:"100%", marginBottom:10 }}
+          placeholder={t.searchStudents}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
         <div style={S.filterBtns}>
           {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
             <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
@@ -720,7 +742,7 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
       </div>
 
       {isMobile ? (
-        <div>
+        <div onScroll={handleScroll} style={{ overflowY:"auto" }}>
           {filtered.length===0 ? (
             <p style={S.empty}>{t.noStudentsFound}</p>
           ) : filtered.map(s => (
@@ -756,7 +778,7 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
           ))}
         </div>
       ) : (
-        <div style={S.card}>
+        <div style={{ ...S.card, overflowY:"auto", maxHeight:"calc(100vh - 220px)" }} onScroll={handleScroll}>
           <table style={S.table}>
             <thead>
               <tr style={S.thead}>
