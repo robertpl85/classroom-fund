@@ -204,7 +204,7 @@ export default function App() {
       <Sidebar currentUser={currentUser} view={view} setView={setView}
         pendingCount={currentUser.role === "admin" ? pendingCount : 0}
         onLogout={handleLogout} className={className} isMobile={isMobile} />
-      <main style={{ ...S.main, ...(isMobile ? { paddingTop:56, paddingBottom:65 } : {}) }}>
+      <main style={{ ...S.main, ...(isMobile ? { paddingTop:41, paddingBottom:65 } : {}) }}>
         {/* keyed wrapper triggers fadeIn animation on every view change */}
         <div key={view} style={{ animation:"fadeIn 0.3s ease forwards" }}>
           {view === "dashboard" && (
@@ -1518,7 +1518,7 @@ const S = {
   logoutBtn:    { display:"flex", alignItems:"center", gap:8, margin:"8px 12px 0", padding:"9px 14px", background:"rgba(168,85,247,0.15)", border:"none", borderRadius:8, color:"#c084fc", fontSize:13, fontWeight:600, cursor:"pointer" },
 
   // ── Mobile bars ──
-  mobileTopBar:     { position:"fixed", top:0, left:0, right:0, height:56, background:"#1e0038", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200, boxShadow:"0 2px 12px rgba(123,47,190,0.4)" },
+  mobileTopBar:     { position:"fixed", top:0, left:0, right:0, height:41, background:"#1e0038", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200, boxShadow:"0 2px 12px rgba(123,47,190,0.4)" },
   mobileUserMenu:   { position:"fixed", top:56, right:8, background:"#fff", borderRadius:10, boxShadow:"0 8px 30px rgba(123,47,190,0.2)", zIndex:300, minWidth:220, border:"1px solid #e9d5ff" },
   mobileMenuLogout: { display:"flex", alignItems:"center", gap:8, width:"100%", padding:"12px 16px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:14, fontWeight:600 },
   bottomNav:        { position:"fixed", bottom:0, left:0, right:0, height:64, background:"#1e0038", display:"flex", alignItems:"stretch", zIndex:200, borderTop:"1px solid rgba(192,132,252,0.2)", marginBottom:"15px" },
