@@ -292,17 +292,15 @@ function MobileTopBar({ currentUser, className, onLogout, t, language, setLangua
   return (
     <>
       <div style={S.mobileTopBar}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:30, height:30, borderRadius:6, objectFit:"cover" }} />
-          <span style={{ color:"#fff", fontWeight:800, fontSize:15, lineHeight:1.2 }}>{className}</span>
+        <div style={{ display:"flex", alignItems:"center", gap:8, flex:1, minWidth:0 }}>
+          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:30, height:30, borderRadius:6, objectFit:"cover", flexShrink:0 }} />
+          <span style={{ color:"#fff", fontWeight:800, fontSize:15, lineHeight:1.2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{className}</span>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <LanguageToggle language={language} setLanguage={setLanguage} />
-          <button onClick={() => setMenuOpen(!menuOpen)}
-            style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
-            <div style={{ ...S.avatar, width:34, height:34, fontSize:14 }}>{currentUser.name[0]}</div>
-          </button>
-        </div>
+        <LanguageToggle language={language} setLanguage={setLanguage} />
+        <button onClick={() => setMenuOpen(!menuOpen)}
+          style={{ background:"none", border:"none", cursor:"pointer", padding:4, flexShrink:0 }}>
+          <div style={{ ...S.avatar, width:34, height:34, fontSize:14 }}>{currentUser.name[0]}</div>
+        </button>
       </div>
       {menuOpen && (
         <div style={S.mobileUserMenu}>
