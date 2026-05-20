@@ -653,27 +653,16 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
   const [busy, setBusy]           = useState(false);
   const [emailValid, setEmailValid] = useState(null);
   const [showSearch, setShowSearch] = useState(true);
-  const lastScrollY = useRef(0);
+  const sentinelRef = useRef(null);
 
   useEffect(() => {
-    if (!isMobile) return;
-    // The <main> element is the real scroll container on mobile
-    // (html/body have overflow:hidden so window.scrollY stays 0)
-    const container = document.querySelector('main');
-    if (!container) return;
-
-    const handleScroll = () => {
-      const currentScrollY = container.scrollTop;
-      if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
-        setShowSearch(false);
-      } else if (currentScrollY < lastScrollY.current) {
-        setShowSearch(true);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
+    if (!isMobile || !sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { setShowSearch(entry.isIntersecting); },
+      { threshold: 0, rootMargin: '0px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
   }, [isMobile]);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -732,27 +721,31 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
       </div>
 
       {isMobile ? (
-        /* Mobile: search above filters, hides on scroll down */
-        <div style={{
-          overflow: "hidden",
-          maxHeight: showSearch ? "120px" : "0px",
-          opacity: showSearch ? 1 : 0,
-          transition: "max-height 0.3s ease, opacity 0.2s ease",
-          marginBottom: showSearch ? 16 : 0,
-        }}>
-          <input
-            style={{ ...S.input, width:"100%", marginBottom:10 }}
-            placeholder={t.searchStudents}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <div style={S.filterBtns}>
-            {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
-              <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
-                onClick={() => setFilter(f.id)}>{f.label}</button>
-            ))}
+        /* Mobile: search above filters, hides when sentinel scrolls out of view */
+        <>
+          <div style={{
+            overflow: "hidden",
+            maxHeight: showSearch ? "120px" : "0px",
+            opacity: showSearch ? 1 : 0,
+            transition: "max-height 0.3s ease, opacity 0.2s ease",
+            marginBottom: showSearch ? 16 : 0,
+          }}>
+            <input
+              style={{ ...S.input, width:"100%", marginBottom:10 }}
+              placeholder={t.searchStudents}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <div style={S.filterBtns}>
+              {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
+                <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
+                  onClick={() => setFilter(f.id)}>{f.label}</button>
+              ))}
+            </div>
           </div>
-        </div>
+          {/* Sentinel: when this scrolls out of view, search bar hides */}
+          <div ref={sentinelRef} style={{ height: 1 }} />
+        </>
       ) : (
         /* Desktop: search left, filters right, always visible */
         <div style={{ ...S.filterBar, marginBottom:12 }}>
