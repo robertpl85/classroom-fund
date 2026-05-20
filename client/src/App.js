@@ -258,7 +258,7 @@ function LanguageToggle({ language, setLanguage }) {
   };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <span style={{ fontSize: 14 }}>🇺🇸</span>
+      <span style={{ fontSize: 14, color: "#fff" }}>🇺🇸</span>
       <div onClick={toggle} style={{
         width: 36,
         height: 20,
@@ -281,7 +281,7 @@ function LanguageToggle({ language, setLanguage }) {
           boxShadow: "0 1px 3px rgba(0,0,0,0.3)"
         }} />
       </div>
-      <span style={{ fontSize: 14 }}>🇵🇱</span>
+      <span style={{ fontSize: 14, color: "#fff" }}>🇵🇱</span>
     </div>
   );
 }
