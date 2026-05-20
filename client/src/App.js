@@ -720,26 +720,41 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
         )}
       </div>
 
-      <div style={{
-        overflow: "hidden",
-        maxHeight: showSearch ? "120px" : "0px",
-        opacity: showSearch ? 1 : 0,
-        transition: "max-height 0.3s ease, opacity 0.2s ease",
-        marginBottom: showSearch ? 16 : 0,
-      }}>
-        <input
-          style={{ ...S.input, width:"100%", marginBottom:10 }}
-          placeholder={t.searchStudents}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        <div style={S.filterBtns}>
-          {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
-            <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
-              onClick={() => setFilter(f.id)}>{f.label}</button>
-          ))}
+      {isMobile ? (
+        /* Mobile: search above filters, hides on scroll down */
+        <div style={{
+          overflow: "hidden",
+          maxHeight: showSearch ? "120px" : "0px",
+          opacity: showSearch ? 1 : 0,
+          transition: "max-height 0.3s ease, opacity 0.2s ease",
+          marginBottom: showSearch ? 16 : 0,
+        }}>
+          <input
+            style={{ ...S.input, width:"100%", marginBottom:10 }}
+            placeholder={t.searchStudents}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <div style={S.filterBtns}>
+            {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
+              <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
+                onClick={() => setFilter(f.id)}>{f.label}</button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Desktop: search left, filters right, always visible */
+        <div style={{ ...S.filterBar, marginBottom:12 }}>
+          <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder={t.searchStudents}
+            value={search} onChange={e => setSearch(e.target.value)}/>
+          <div style={S.filterBtns}>
+            {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
+              <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
+                onClick={() => setFilter(f.id)}>{f.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isMobile ? (
         <div onScroll={handleScroll} style={{ overflowY:"auto" }}>
@@ -778,7 +793,7 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
           ))}
         </div>
       ) : (
-        <div style={{ ...S.card, overflowY:"auto", maxHeight:"calc(100vh - 220px)" }} onScroll={handleScroll}>
+        <div style={S.card}>
           <table style={S.table}>
             <thead>
               <tr style={S.thead}>
