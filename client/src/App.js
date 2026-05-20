@@ -455,9 +455,12 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
     <aside style={S.sidebar}>
       <div>
         <div style={S.sideHeader}>
-          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:36 }} />
-          <div>
-            <div style={S.sideTitle}>{className}</div>
+          <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:36, flexShrink:0 }} />
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:6 }}>
+              <div style={S.sideTitle}>{className}</div>
+              <LanguageToggle language={language} setLanguage={setLanguage} />
+            </div>
             <div style={S.sideRole}>Emilia Plater Polish School</div>
             <div style={S.sideRole}>{currentUser.role==="admin"?"★ Admin":t.classroomMom}</div>
           </div>
@@ -491,9 +494,6 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
             );
           })}
         </nav>
-      </div>
-      <div style={{ padding:"8px 12px 0" }}>
-        <LanguageToggle language={language} setLanguage={setLanguage} />
       </div>
       <button style={S.logoutBtn} onClick={onLogout}>
         <Icon name="logout" size={17}/> {t.signOut}
