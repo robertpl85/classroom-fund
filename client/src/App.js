@@ -257,22 +257,32 @@ function LanguageToggle({ language, setLanguage }) {
     localStorage.setItem('cf_language', newLang);
   };
   return (
-    <button onClick={toggle} style={{
-      background: "rgba(255,255,255,0.15)",
-      border: "1px solid rgba(255,255,255,0.3)",
-      borderRadius: 20,
-      padding: "4px 12px",
-      color: "#fff",
-      cursor: "pointer",
-      fontSize: 13,
-      fontWeight: 700,
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      fontFamily: "inherit"
-    }}>
-      {language === 'en' ? '🇵🇱 PL' : '🇺🇸 EN'}
-    </button>
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <span style={{ fontSize: 14 }}>🇺🇸</span>
+      <div onClick={toggle} style={{
+        width: 36,
+        height: 20,
+        borderRadius: 10,
+        background: language === 'pl' ? "#7b2fbe" : "#9ca3af",
+        position: "relative",
+        cursor: "pointer",
+        transition: "background 0.3s ease",
+        flexShrink: 0
+      }}>
+        <div style={{
+          position: "absolute",
+          top: 2,
+          left: language === 'pl' ? 18 : 2,
+          width: 16,
+          height: 16,
+          borderRadius: "50%",
+          background: "#fff",
+          transition: "left 0.3s ease",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.3)"
+        }} />
+      </div>
+      <span style={{ fontSize: 14 }}>🇵🇱</span>
+    </div>
   );
 }
 
@@ -372,10 +382,7 @@ function LoginScreen({ onLogin, className, t, language, setLanguage }) {
           <p style={S.loginSub}>{t.classroomFundManager}</p>
         </div>
         <div style={{ display:"flex", justifyContent:"center", marginBottom:16 }}>
-          <button onClick={() => { const nl = language==='en'?'pl':'en'; setLanguage(nl); localStorage.setItem('cf_language',nl); }}
-            style={{ background:"linear-gradient(135deg,#4a0080,#7b2fbe)", border:"none", borderRadius:20, padding:"5px 14px", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:6, fontFamily:"inherit" }}>
-            {language==='en' ? '🇵🇱 PL' : '🇺🇸 EN'}
-          </button>
+          <LanguageToggle language={language} setLanguage={setLanguage} />
         </div>
         <div style={S.fieldGroup}>
           <label style={S.label}>{t.email}</label>
