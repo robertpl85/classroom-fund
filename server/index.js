@@ -18,7 +18,7 @@ app.use(helmet({
 // Login rate limiting is handled per-email inside routes/auth.js
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
   message: { error: 'Too many requests. Please slow down.' },
 });
 
