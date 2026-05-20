@@ -652,19 +652,6 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
   const [form, setForm]           = useState({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 });
   const [busy, setBusy]           = useState(false);
   const [emailValid, setEmailValid] = useState(null);
-  const [showSearch, setShowSearch] = useState(true);
-  const sentinelRef = useRef(null);
-
-  useEffect(() => {
-    if (!isMobile || !sentinelRef.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { setShowSearch(entry.isIntersecting); },
-      { threshold: 0, rootMargin: '0px' }
-    );
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [isMobile]);
-
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const filtered = students.filter(s => {
@@ -720,16 +707,18 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
         )}
       </div>
 
-      {isMobile ? (
-        /* Mobile: search above filters, hides when sentinel scrolls out of view */
-        <>
-          <div style={{
-            overflow: "hidden",
-            maxHeight: showSearch ? "120px" : "0px",
-            opacity: showSearch ? 1 : 0,
-            transition: "max-height 0.3s ease, opacity 0.2s ease",
-            marginBottom: showSearch ? 16 : 0,
-          }}>
+      <div style={{
+        position: isMobile ? "sticky" : "static",
+        top: isMobile ? 0 : "auto",
+        background: "#f1f5f9",
+        zIndex: 10,
+        paddingTop: isMobile ? 8 : 0,
+        paddingBottom: isMobile ? 8 : 0,
+        marginBottom: 16,
+      }}>
+        {isMobile ? (
+          /* Mobile: search above filters */
+          <>
             <input
               style={{ ...S.input, width:"100%", marginBottom:10 }}
               placeholder={t.searchStudents}
@@ -742,23 +731,21 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
                   onClick={() => setFilter(f.id)}>{f.label}</button>
               ))}
             </div>
+          </>
+        ) : (
+          /* Desktop: search left, filters right */
+          <div style={S.filterBar}>
+            <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder={t.searchStudents}
+              value={search} onChange={e => setSearch(e.target.value)}/>
+            <div style={S.filterBtns}>
+              {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
+                <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
+                  onClick={() => setFilter(f.id)}>{f.label}</button>
+              ))}
+            </div>
           </div>
-          {/* Sentinel: when this scrolls out of view, search bar hides */}
-          <div ref={sentinelRef} style={{ height: 1 }} />
-        </>
-      ) : (
-        /* Desktop: search left, filters right, always visible */
-        <div style={{ ...S.filterBar, marginBottom:12 }}>
-          <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder={t.searchStudents}
-            value={search} onChange={e => setSearch(e.target.value)}/>
-          <div style={S.filterBtns}>
-            {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
-              <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
-                onClick={() => setFilter(f.id)}>{f.label}</button>
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {isMobile ? (
         <div>
