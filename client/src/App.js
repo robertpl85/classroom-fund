@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "./api";
+import translations from "./translations";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -123,6 +124,9 @@ export default function App() {
   const [view, setView]               = useState("dashboard");
   const [toast, setToast]             = useState(null);
 
+  const [language, setLanguage] = useState(() => localStorage.getItem('cf_language') || 'en');
+  const t = translations[language];
+
   const [students, setStudents]   = useState([]);
   const [expenses, setExpenses]   = useState([]);
   const [users, setUsers]         = useState([]);
@@ -164,9 +168,9 @@ export default function App() {
         setUsers(u);
       }
     } catch (err) {
-      showToast("Failed to load data. Please refresh.", "error");
+      showToast(t.serverError, "error");
     }
-  }, [currentUser, showToast]);
+  }, [currentUser, showToast, t]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
@@ -189,7 +193,7 @@ export default function App() {
   };
 
   if (loading) return <Spinner />;
-  if (!currentUser) return <LoginScreen onLogin={handleLogin} className={className} />;
+  if (!currentUser) return <LoginScreen onLogin={handleLogin} className={className} t={t} language={language} setLanguage={setLanguage} />;
 
   const pendingCount = expenses.filter(e => e.status === "pending").length;
 
@@ -200,32 +204,32 @@ export default function App() {
           {toast.msg}
         </div>
       )}
-      {isMobile && <MobileTopBar currentUser={currentUser} className={className} onLogout={handleLogout} />}
+      {isMobile && <MobileTopBar currentUser={currentUser} className={className} onLogout={handleLogout} t={t} language={language} setLanguage={setLanguage} />}
       <Sidebar currentUser={currentUser} view={view} setView={setView}
         pendingCount={currentUser.role === "admin" ? pendingCount : 0}
-        onLogout={handleLogout} className={className} isMobile={isMobile} />
+        onLogout={handleLogout} className={className} isMobile={isMobile} t={t} language={language} setLanguage={setLanguage} />
       <main style={{ ...S.main, ...(isMobile ? { paddingTop:41, paddingBottom:65 } : {}) }}>
         {/* keyed wrapper triggers fadeIn animation on every view change */}
         <div key={view} style={{ animation:"fadeIn 0.3s ease forwards" }}>
           {view === "dashboard" && (
             <Dashboard summary={summary} students={students} expenses={expenses}
-              currentUser={currentUser} setView={setView} onRefresh={loadAll} />
+              currentUser={currentUser} setView={setView} onRefresh={loadAll} t={t} />
           )}
           {view === "students" && (
             <StudentsPanel students={students} currentUser={currentUser}
-              showToast={showToast} reload={loadAll} />
+              showToast={showToast} reload={loadAll} t={t} />
           )}
           {view === "expenses" && (
             <ExpensesPanel expenses={expenses} currentUser={currentUser}
-              showToast={showToast} reload={loadAll} summary={summary} />
+              showToast={showToast} reload={loadAll} summary={summary} t={t} />
           )}
           {view === "approvals" && currentUser.role === "admin" && (
             <ApprovalsPanel expenses={expenses} users={users} currentUser={currentUser}
-              showToast={showToast} reload={loadAll} />
+              showToast={showToast} reload={loadAll} t={t} />
           )}
           {view === "accounts" && currentUser.role === "admin" && (
             <AccountsPanel users={users} currentUser={currentUser}
-              showToast={showToast} reload={loadAll} className={className} onReset={handleReset} />
+              showToast={showToast} reload={loadAll} className={className} onReset={handleReset} t={t} language={language} setLanguage={setLanguage} />
           )}
         </div>
       </main>
@@ -245,8 +249,35 @@ function Spinner() {
   );
 }
 
+// ─── Language Toggle ──────────────────────────────────────────────────────────
+function LanguageToggle({ language, setLanguage }) {
+  const toggle = () => {
+    const newLang = language === 'en' ? 'pl' : 'en';
+    setLanguage(newLang);
+    localStorage.setItem('cf_language', newLang);
+  };
+  return (
+    <button onClick={toggle} style={{
+      background: "rgba(255,255,255,0.15)",
+      border: "1px solid rgba(255,255,255,0.3)",
+      borderRadius: 20,
+      padding: "4px 12px",
+      color: "#fff",
+      cursor: "pointer",
+      fontSize: 13,
+      fontWeight: 700,
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontFamily: "inherit"
+    }}>
+      {language === 'en' ? '🇵🇱 PL' : '🇺🇸 EN'}
+    </button>
+  );
+}
+
 // ─── Mobile Top Bar ───────────────────────────────────────────────────────────
-function MobileTopBar({ currentUser, className, onLogout }) {
+function MobileTopBar({ currentUser, className, onLogout, t, language, setLanguage }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <>
@@ -255,10 +286,13 @@ function MobileTopBar({ currentUser, className, onLogout }) {
           <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:30, height:30, borderRadius:6, objectFit:"cover" }} />
           <span style={{ color:"#fff", fontWeight:800, fontSize:15, lineHeight:1.2 }}>{className}</span>
         </div>
-        <button onClick={() => setMenuOpen(!menuOpen)}
-          style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
-          <div style={{ ...S.avatar, width:34, height:34, fontSize:14 }}>{currentUser.name[0]}</div>
-        </button>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <LanguageToggle language={language} setLanguage={setLanguage} />
+          <button onClick={() => setMenuOpen(!menuOpen)}
+            style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
+            <div style={{ ...S.avatar, width:34, height:34, fontSize:14 }}>{currentUser.name[0]}</div>
+          </button>
+        </div>
       </div>
       {menuOpen && (
         <div style={S.mobileUserMenu}>
@@ -266,11 +300,11 @@ function MobileTopBar({ currentUser, className, onLogout }) {
             <div style={{ fontWeight:700, color:"#2d0057", fontSize:14 }}>{currentUser.name}</div>
             <div style={{ color:"#6b7280", fontSize:12 }}>{currentUser.email}</div>
             <div style={{ color:"#7b2fbe", fontSize:12, fontWeight:600, marginTop:2 }}>
-              {currentUser.role === "admin" ? "★ Admin" : "Classroom Mom"}
+              {currentUser.role === "admin" ? "★ Admin" : t.classroomMom}
             </div>
           </div>
           <button style={S.mobileMenuLogout} onClick={() => { setMenuOpen(false); onLogout(); }}>
-            <Icon name="logout" size={16}/> Sign Out
+            <Icon name="logout" size={16}/> {t.signOut}
           </button>
         </div>
       )}
@@ -279,7 +313,7 @@ function MobileTopBar({ currentUser, className, onLogout }) {
 }
 
 // ─── Login ───────────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin, className }) {
+function LoginScreen({ onLogin, className, t, language, setLanguage }) {
   const [email, setEmail]   = useState("");
   const [pw, setPw]         = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -287,7 +321,7 @@ function LoginScreen({ onLogin, className }) {
   const [busy, setBusy]     = useState(false);
 
   const strength = getPasswordStrength(pw);
-  const strengthLabel = ["", "Weak", "Medium", "Strong"][strength];
+  const strengthLabel = ["", t.weak, t.medium, t.strong][strength];
   const strengthColor = ["", "#ef4444", "#f59e0b", "#10b981"][strength];
 
   useEffect(() => {
@@ -335,16 +369,22 @@ function LoginScreen({ onLogin, className }) {
           <img src="/logo.jpg" alt="Emilia Plater Polish School" style={{ width:110 }} />
           <h1 style={S.loginTitle}>{className}</h1>
           <p style={S.loginSub}>Emilia Plater Polish School</p>
-          <p style={S.loginSub}>Classroom Fund Manager</p>
+          <p style={S.loginSub}>{t.classroomFundManager}</p>
+        </div>
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:16 }}>
+          <button onClick={() => { const nl = language==='en'?'pl':'en'; setLanguage(nl); localStorage.setItem('cf_language',nl); }}
+            style={{ background:"linear-gradient(135deg,#4a0080,#7b2fbe)", border:"none", borderRadius:20, padding:"5px 14px", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:6, fontFamily:"inherit" }}>
+            {language==='en' ? '🇵🇱 PL' : '🇺🇸 EN'}
+          </button>
         </div>
         <div style={S.fieldGroup}>
-          <label style={S.label}>Email</label>
+          <label style={S.label}>{t.email}</label>
           <input style={S.input} type="email" value={email}
             onChange={e => setEmail(e.target.value)} placeholder="your@email.com"
             onKeyDown={e => e.key==="Enter" && handleLogin()} />
         </div>
         <div style={S.fieldGroup}>
-          <label style={S.label}>Password</label>
+          <label style={S.label}>{t.password}</label>
           <div style={{ position:"relative" }}>
             <input style={{ ...S.input, paddingRight:42 }} type={showPw?"text":"password"}
               value={pw} onChange={e => setPw(e.target.value)} placeholder="••••••••"
@@ -368,25 +408,25 @@ function LoginScreen({ onLogin, className }) {
         {error && <p style={S.errorText}>{error}</p>}
         <PrimaryButton style={{ width:"100%", justifyContent:"center", opacity:busy?0.7:1 }}
           onClick={handleLogin} disabled={busy}>
-          {busy ? "Signing in…" : "Sign In"}
+          {busy ? t.signingIn : t.signIn}
         </PrimaryButton>
-        <p style={S.loginHint}>Contact the class admin to get your account.</p>
+        <p style={S.loginHint}>{t.contactAdmin}</p>
       </div>
     </div>
   );
 }
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
-function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className, isMobile }) {
+function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className, isMobile, t, language, setLanguage }) {
   const [hoveredNav, setHoveredNav] = useState(null);
 
   const navItems = [
-    { id:"dashboard", label:"Dashboard", icon:"home" },
-    { id:"students",  label:"Students",  icon:"users" },
-    { id:"expenses",  label:"Expenses",  icon:"dollar" },
+    { id:"dashboard", label:t.dashboard, icon:"home" },
+    { id:"students",  label:t.students,  icon:"users" },
+    { id:"expenses",  label:t.expenses,  icon:"dollar" },
     ...(currentUser.role==="admin" ? [
-      { id:"approvals", label:"Approvals", icon:"check", badge: pendingCount },
-      { id:"accounts",  label:"Admin",  icon:"shield" },
+      { id:"approvals", label:t.approvals, icon:"check", badge: pendingCount },
+      { id:"accounts",  label:t.admin,  icon:"shield" },
     ] : []),
   ];
 
@@ -419,7 +459,7 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
           <div>
             <div style={S.sideTitle}>{className}</div>
             <div style={S.sideRole}>Emilia Plater Polish School</div>
-            <div style={S.sideRole}>{currentUser.role==="admin"?"★ Admin":"Classroom Mom"}</div>
+            <div style={S.sideRole}>{currentUser.role==="admin"?"★ Admin":t.classroomMom}</div>
           </div>
         </div>
         <div style={S.sideUser}>
@@ -452,15 +492,18 @@ function Sidebar({ currentUser, view, setView, pendingCount, onLogout, className
           })}
         </nav>
       </div>
+      <div style={{ padding:"8px 12px 0" }}>
+        <LanguageToggle language={language} setLanguage={setLanguage} />
+      </div>
       <button style={S.logoutBtn} onClick={onLogout}>
-        <Icon name="logout" size={17}/> Sign Out
+        <Icon name="logout" size={17}/> {t.signOut}
       </button>
     </aside>
   );
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
-function Dashboard({ summary, students, expenses, currentUser, setView, onRefresh }) {
+function Dashboard({ summary, students, expenses, currentUser, setView, onRefresh, t }) {
   const isMobile   = useIsMobile();
   const [hoveredRow, setHoveredRow] = useState(null);
 
@@ -476,11 +519,11 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
     <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
       <div style={{ ...S.pageHeader, ...(isMobile ? { marginBottom:16 } : {}) }}>
         <div>
-          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Dashboard</h2>
-          <p style={S.pageSubtitle}>Welcome back, {currentUser.name.split(" ")[0]}!</p>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>{t.dashboard}</h2>
+          <p style={S.pageSubtitle}>{t.welcomeBack}, {currentUser.name.split(" ")[0]}!</p>
         </div>
         <button style={S.btnSecondary} onClick={onRefresh}>
-          <Icon name="refresh" size={15}/> Refresh
+          <Icon name="refresh" size={15}/> {t.refresh}
         </button>
       </div>
 
@@ -489,10 +532,10 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
           [1,2,3,4].map(i => <SkeletonCard key={i}/>)
         ) : (
           <>
-            <StatCard icon="dollar" label="Balance"    value={`$${animBalance.toFixed(2)}`}         color="#7b2fbe" bg="#f5f3ff" note="Available funds" />
-            <StatCard icon="check"  label="Collected"  value={`$${animCollected.toFixed(2)}`}       color="#059669" bg="#ecfdf5" note={`${paidCount}/${students.length} paid`} />
-            <StatCard icon="list"   label="Spent"      value={`$${animSpent.toFixed(2)}`}           color="#d97706" bg="#fffbeb" note="Approved expenses" />
-            <StatCard icon="users"  label="Class Size" value={students.length}                       color="#6d28d9" bg="#f5f3ff" note={`${students.length-paidCount} unpaid`} />
+            <StatCard icon="dollar" label={t.balance}    value={`$${animBalance.toFixed(2)}`}         color="#7b2fbe" bg="#f5f3ff" note={t.availableFunds} />
+            <StatCard icon="check"  label={t.collected}  value={`$${animCollected.toFixed(2)}`}       color="#059669" bg="#ecfdf5" note={`${paidCount}/${students.length} ${t.paid}`} />
+            <StatCard icon="list"   label={t.totalSpent} value={`$${animSpent.toFixed(2)}`}           color="#d97706" bg="#fffbeb" note={t.approvedExpenses} />
+            <StatCard icon="users"  label={t.classSize}  value={students.length}                       color="#6d28d9" bg="#f5f3ff" note={`${students.length-paidCount} ${t.unpaid}`} />
           </>
         )}
       </div>
@@ -507,8 +550,8 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
 
       <div style={{ ...S.twoCol, gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr" }}>
         <div style={S.card}>
-          <h3 style={S.cardTitle}>Recent Expenses</h3>
-          {recentExpenses.length===0 ? <p style={S.empty}>No expenses yet.</p> : recentExpenses.map(e => (
+          <h3 style={S.cardTitle}>{t.recentExpenses}</h3>
+          {recentExpenses.length===0 ? <p style={S.empty}>{t.noExpenses}</p> : recentExpenses.map(e => (
             <div key={e.id}
               style={{ ...S.expenseRow, background: hoveredRow===e.id ? "#faf5ff" : "transparent", borderRadius:8, transition:"background 0.15s ease", margin:"0 -8px", padding:"12px 8px" }}
               onMouseEnter={() => setHoveredRow(e.id)}
@@ -519,25 +562,25 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
               </div>
               <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
                 <span style={S.expenseAmt}>-${parseFloat(e.amount).toFixed(2)}</span>
-                <StatusChip status={e.status}/>
+                <StatusChip status={e.status} t={t}/>
               </div>
             </div>
           ))}
         </div>
         <div style={S.card}>
-          <h3 style={S.cardTitle}>Payment Summary</h3>
+          <h3 style={S.cardTitle}>{t.paymentSummary}</h3>
           {students.length > 0 ? (
             <>
               <div style={S.progressWrap}>
                 <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
-                  <span style={S.meta}>{paidCount} paid</span>
-                  <span style={S.meta}>{students.length-paidCount} unpaid</span>
+                  <span style={S.meta}>{paidCount} {t.paid}</span>
+                  <span style={S.meta}>{students.length-paidCount} {t.unpaid}</span>
                 </div>
                 <div style={S.progressBar}>
                   <div style={{ ...S.progressFill, width:`${(paidCount/students.length)*100}%` }}/>
                 </div>
                 <div style={{ textAlign:"center", marginTop:8, fontSize:13, color:"#6b7280" }}>
-                  {Math.round((paidCount/students.length)*100)}% of families have paid
+                  {Math.round((paidCount/students.length)*100)}{t.familiesPaid}
                 </div>
               </div>
               {students.filter(s=>!s.paid).slice(0,4).map(s => (
@@ -546,24 +589,24 @@ function Dashboard({ summary, students, expenses, currentUser, setView, onRefres
                     <div style={S.expenseDesc}>{s.name}</div>
                     <div style={S.expenseMeta}>{s.parent_email}</div>
                   </div>
-                  <span style={{ color:"#7b2fbe", fontSize:13, fontWeight:600 }}>Pending</span>
+                  <span style={{ color:"#7b2fbe", fontSize:13, fontWeight:600 }}>{t.pending}</span>
                 </div>
               ))}
             </>
-          ) : <p style={S.empty}>No students added yet.</p>}
+          ) : <p style={S.empty}>{t.noStudentsFound}</p>}
         </div>
       </div>
     </div>
   );
 }
 
-function PasswordChecklist({ password }) {
+function PasswordChecklist({ password, t }) {
   if (!password) return null;
   const checks = [
-    { label: 'At least 8 characters',             met: password.length >= 8 },
-    { label: 'One uppercase letter (A–Z)',          met: /[A-Z]/.test(password) },
-    { label: 'One number (0–9)',                   met: /[0-9]/.test(password) },
-    { label: 'One special character (!@#$%^&*…)', met: /[!@#$%^&*()_+\-=\[\]{};:,.<>?]/.test(password) },
+    { label: t.min8chars,    met: password.length >= 8 },
+    { label: t.oneUppercase, met: /[A-Z]/.test(password) },
+    { label: t.oneNumber,    met: /[0-9]/.test(password) },
+    { label: t.oneSpecial,   met: /[!@#$%^&*()_+\-=\[\]{};:,.<>?]/.test(password) },
   ];
   return (
     <div style={{ marginTop:8, marginBottom:4 }}>
@@ -595,7 +638,7 @@ function StatCard({ icon, label, value, color, bg, note }) {
 }
 
 // ─── Students Panel ───────────────────────────────────────────────────────────
-function StudentsPanel({ students, currentUser, showToast, reload }) {
+function StudentsPanel({ students, currentUser, showToast, reload, t }) {
   const isMobile = useIsMobile();
   const [search, setSearch]       = useState("");
   const [showAdd, setShowAdd]     = useState(false);
@@ -619,15 +662,15 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
   const openEdit = s  => { setForm({ name:s.name, parent_email:s.parent_email, parent_phone:s.parent_phone||"", paid:s.paid, amount:s.amount }); setEditSt(s); setEmailValid(s.parent_email ? emailRegex.test(s.parent_email) : null); setShowAdd(true); };
 
   const handleSave = async () => {
-    if (!form.name || !form.parent_email) { showToast("Name and email are required.", "error"); return; }
+    if (!form.name || !form.parent_email) { showToast(t.nameEmailRequired, "error"); return; }
     if (form.parent_email && !emailRegex.test(form.parent_email)) {
-      showToast("Please enter a valid email address.", "error");
+      showToast(t.invalidEmail, "error");
       return;
     }
     setBusy(true);
     try {
-      if (editSt) { await api.updateStudent(editSt.id, form); showToast("Student updated!"); }
-      else        { await api.addStudent(form); showToast("Student added!"); }
+      if (editSt) { await api.updateStudent(editSt.id, form); showToast(t.studentUpdated); }
+      else        { await api.addStudent(form); showToast(t.studentAdded); }
       setShowAdd(false); reload();
     } catch (err) { showToast(err.message, "error"); }
     finally { setBusy(false); }
@@ -642,7 +685,7 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Remove this student?")) return;
-    try { await api.deleteStudent(id); showToast("Student removed."); reload(); }
+    try { await api.deleteStudent(id); showToast(t.studentRemoved); reload(); }
     catch (err) { showToast(err.message, "error"); }
   };
 
@@ -650,23 +693,23 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
     <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
       <div style={{ ...S.pageHeader, ...(isMobile ? { marginBottom:14 } : {}) }}>
         <div>
-          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Students</h2>
-          <p style={S.pageSubtitle}>{students.length} students · {students.filter(s=>s.paid).length} paid</p>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>{t.students}</h2>
+          <p style={S.pageSubtitle}>{students.length} {t.students} · {students.filter(s=>s.paid).length} {t.paid}</p>
         </div>
         {currentUser.role==="admin" && (
           <PrimaryButton onClick={openAdd}>
-            <Icon name="plus" size={16}/>{isMobile ? "" : " Add Student"}
+            <Icon name="plus" size={16}/>{isMobile ? "" : ` ${t.addStudent}`}
           </PrimaryButton>
         )}
       </div>
 
       <div style={{ ...S.filterBar, marginBottom:12 }}>
-        <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder="Search…"
+        <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder={t.searchStudents}
           value={search} onChange={e => setSearch(e.target.value)}/>
         <div style={S.filterBtns}>
-          {["all","paid","unpaid"].map(f => (
-            <button key={f} style={{ ...S.filterBtn, ...(filter===f ? S.filterActive : {}) }}
-              onClick={() => setFilter(f)}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
+          {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
+            <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
+              onClick={() => setFilter(f.id)}>{f.label}</button>
           ))}
         </div>
       </div>
@@ -674,7 +717,7 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
       {isMobile ? (
         <div>
           {filtered.length===0 ? (
-            <p style={S.empty}>No students found.</p>
+            <p style={S.empty}>{t.noStudentsFound}</p>
           ) : filtered.map(s => (
             <div key={s.id} style={S.studentCard}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
@@ -693,9 +736,9 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
                   {currentUser.role==="admin" ? (
                     <button style={{ ...S.statusToggle, ...(s.paid ? S.paidBtn : S.unpaidBtn) }}
                       onClick={() => togglePaid(s)}>
-                      {s.paid ? "✓ Paid" : "○ Unpaid"}
+                      {s.paid ? `✓ ${t.paid}` : `○ ${t.unpaid}`}
                     </button>
-                  ) : <StatusChip status={s.paid?"paid":"unpaid"}/>}
+                  ) : <StatusChip status={s.paid?"paid":"unpaid"} t={t}/>}
                 </div>
               </div>
               {currentUser.role==="admin" && (
@@ -712,11 +755,11 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
           <table style={S.table}>
             <thead>
               <tr style={S.thead}>
-                <th style={S.th}>Student</th>
-                <th style={S.th}>Parent Email</th>
-                <th style={S.th}>Phone</th>
-                <th style={S.th}>Amount</th>
-                <th style={S.th}>Status</th>
+                <th style={S.th}>{t.studentName}</th>
+                <th style={S.th}>{t.parentEmail}</th>
+                <th style={S.th}>{t.parentPhone}</th>
+                <th style={S.th}>{t.amount}</th>
+                <th style={S.th}>{t.paid}/{t.unpaid}</th>
                 {currentUser.role==="admin" && <th style={S.th}>Actions</th>}
               </tr>
             </thead>
@@ -738,9 +781,9 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
                     {currentUser.role==="admin" ? (
                       <button style={{ ...S.statusToggle, ...(s.paid ? S.paidBtn : S.unpaidBtn) }}
                         onClick={() => togglePaid(s)}>
-                        {s.paid ? "✓ Paid" : "○ Unpaid"}
+                        {s.paid ? `✓ ${t.paid}` : `○ ${t.unpaid}`}
                       </button>
-                    ) : <StatusChip status={s.paid?"paid":"unpaid"}/>}
+                    ) : <StatusChip status={s.paid?"paid":"unpaid"} t={t}/>}
                   </td>
                   {currentUser.role==="admin" && (
                     <td style={S.td}>
@@ -754,19 +797,19 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
               ))}
             </tbody>
           </table>
-          {filtered.length===0 && <p style={S.empty}>No students found.</p>}
+          {filtered.length===0 && <p style={S.empty}>{t.noStudentsFound}</p>}
         </div>
       )}
 
       {showAdd && (
-        <Modal title={editSt ? "Edit Student" : "Add Student"} onClose={() => setShowAdd(false)}>
+        <Modal title={editSt ? t.editStudent : t.addStudent} onClose={() => setShowAdd(false)}>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Student Name</label>
+            <label style={S.label}>{t.studentName}</label>
             <input style={S.input} value={form.name}
               onChange={e => setForm({...form, name: e.target.value})}/>
           </div>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Parent Email</label>
+            <label style={S.label}>{t.parentEmail}</label>
             <input
               style={{ ...S.input, border: emailValid === null ? "1.5px solid #c084fc" : emailValid ? "1.5px solid #10b981" : "1.5px solid #ef4444" }}
               type="email"
@@ -780,25 +823,25 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
             />
           </div>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Parent Phone</label>
+            <label style={S.label}>{t.parentPhone}</label>
             <input style={S.input} value={form.parent_phone}
               placeholder="555-555-5555"
               onChange={e => setForm({...form, parent_phone: formatPhone(e.target.value)})}/>
           </div>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Contribution Amount ($)</label>
+            <label style={S.label}>{t.contributionAmount}</label>
             <input style={S.input} type="number" value={form.amount}
               onChange={e => setForm({...form, amount:Number(e.target.value)})}/>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
             <input type="checkbox" id="paid" checked={form.paid}
               onChange={e => setForm({...form, paid:e.target.checked})} style={{ width:18, height:18 }}/>
-            <label htmlFor="paid" style={S.label}>Marked as paid</label>
+            <label htmlFor="paid" style={S.label}>{t.markedAsPaid}</label>
           </div>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>Cancel</button>
+            <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>{t.cancel}</button>
             <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={handleSave} disabled={busy}>
-              {busy ? "Saving…" : "Save"}
+              {busy ? "Saving…" : t.save}
             </PrimaryButton>
           </div>
         </Modal>
@@ -808,7 +851,7 @@ function StudentsPanel({ students, currentUser, showToast, reload }) {
 }
 
 // ─── Expenses Panel ───────────────────────────────────────────────────────────
-function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
+function ExpensesPanel({ expenses, currentUser, showToast, reload, summary, t }) {
   const isMobile = useIsMobile();
   const [showAdd, setShowAdd]         = useState(false);
   const [filter, setFilter]           = useState("all");
@@ -825,11 +868,11 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
   };
 
   const handleEdit = async () => {
-    if (!editForm.description || !editForm.amount) { showToast("Description and amount required.", "error"); return; }
+    if (!editForm.description || !editForm.amount) { showToast(t.descriptionAmountRequired, "error"); return; }
     setEditBusy(true);
     try {
       await api.updateExpense(editExpense.id, { ...editForm, amount: Number(editForm.amount) });
-      showToast("Expense updated!");
+      showToast(t.expenseRecorded);
       setEditExpense(null);
       reload();
     } catch (err) { showToast(err.message, "error"); }
@@ -840,7 +883,7 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
     if (!window.confirm(`Delete "${e.description}"?`)) return;
     try {
       await api.deleteExpense(e.id);
-      showToast("Expense deleted.");
+      showToast(t.expenseRejected);
       reload();
     } catch (err) { showToast(err.message, "error"); }
   };
@@ -848,11 +891,11 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
   const filtered = expenses.filter(e => filter==="all" || e.status===filter);
 
   const handleSubmit = async () => {
-    if (!form.description || !form.amount) { showToast("Description and amount required.", "error"); return; }
+    if (!form.description || !form.amount) { showToast(t.descriptionAmountRequired, "error"); return; }
     setBusy(true);
     try {
       await api.addExpense({ ...form, amount: Number(form.amount) });
-      showToast(currentUser.role==="admin" ? "Expense recorded!" : "Expense submitted for approval!");
+      showToast(currentUser.role==="admin" ? t.expenseRecorded : t.expenseSubmitted);
       setShowAdd(false);
       setForm({ description:"", amount:"", category:"General", date:new Date().toISOString().split("T")[0] });
       reload();
@@ -864,11 +907,11 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
     <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
       <div style={{ ...S.pageHeader, ...(isMobile ? { marginBottom:14 } : {}) }}>
         <div>
-          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Expenses</h2>
-          <p style={S.pageSubtitle}>{currentUser.role==="admin" ? "All expenses" : "Your submitted expenses"}</p>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>{t.expenses}</h2>
+          <p style={S.pageSubtitle}>{currentUser.role==="admin" ? t.allExpenses : t.yourExpenses}</p>
         </div>
         <PrimaryButton onClick={() => setShowAdd(true)}>
-          <Icon name="plus" size={16}/>{isMobile ? "" : " Log Expense"}
+          <Icon name="plus" size={16}/>{isMobile ? "" : ` ${t.logExpense}`}
         </PrimaryButton>
       </div>
 
@@ -881,15 +924,15 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
 
       <div style={{ overflowX:"auto", marginBottom:16, paddingBottom:isMobile?4:0 }}>
         <div style={{ ...S.filterBtns, flexWrap: isMobile ? "nowrap" : "wrap" }}>
-          {["all","approved","pending","rejected"].map(f => (
-            <button key={f} style={{ ...S.filterBtn, ...(filter===f ? S.filterActive : {}), whiteSpace:"nowrap" }}
-              onClick={() => setFilter(f)}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
+          {[{id:"all",label:t.all},{id:"approved",label:t.approved},{id:"pending",label:t.pending},{id:"rejected",label:t.rejected}].map(f => (
+            <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}), whiteSpace:"nowrap" }}
+              onClick={() => setFilter(f.id)}>{f.label}</button>
           ))}
         </div>
       </div>
 
       <div style={S.card}>
-        {filtered.length===0 ? <p style={S.empty}>No expenses found.</p> : filtered.map(e => (
+        {filtered.length===0 ? <p style={S.empty}>{t.noExpenses}</p> : filtered.map(e => (
           <div key={e.id}
             style={{ ...S.expenseRow, background: hoveredRow===e.id ? "#faf5ff" : "transparent", borderRadius:8, transition:"background 0.15s ease", margin:"0 -8px", padding:"12px 8px" }}
             onMouseEnter={() => setHoveredRow(e.id)}
@@ -909,7 +952,7 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
             </div>
             <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6, flexShrink:0 }}>
               <span style={S.expenseAmt}>-${parseFloat(e.amount).toFixed(2)}</span>
-              <StatusChip status={e.status}/>
+              <StatusChip status={e.status} t={t}/>
               {currentUser.role==="admin" && e.status==="approved" && (
                 <div style={{ display:"flex", gap:4 }}>
                   <button style={S.iconBtn} onClick={() => openEdit(e)} title="Edit"><Icon name="edit" size={14}/></button>
@@ -922,62 +965,62 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
       </div>
 
       {editExpense && (
-        <Modal title="Edit Expense" onClose={() => setEditExpense(null)}>
+        <Modal title={t.expenses} onClose={() => setEditExpense(null)}>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Description</label>
+            <label style={S.label}>{t.description}</label>
             <input style={S.input} value={editForm.description}
               onChange={e => setEditForm({...editForm, description:e.target.value})}/>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             <div style={S.fieldGroup}>
-              <label style={S.label}>Amount ($)</label>
+              <label style={S.label}>{t.amount} ($)</label>
               <input style={S.input} type="number" step="0.01" min="0" value={editForm.amount}
                 onChange={e => setEditForm({...editForm, amount:e.target.value})}/>
             </div>
             <div style={S.fieldGroup}>
-              <label style={S.label}>Date</label>
+              <label style={S.label}>{t.date}</label>
               <input style={S.input} type="date" value={editForm.date}
                 onChange={e => setEditForm({...editForm, date:e.target.value})}/>
             </div>
           </div>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Category</label>
+            <label style={S.label}>{t.category}</label>
             <select style={S.input} value={editForm.category}
               onChange={e => setEditForm({...editForm, category:e.target.value})}>
               {CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={() => setEditExpense(null)}>Cancel</button>
+            <button style={S.btnSecondary} onClick={() => setEditExpense(null)}>{t.cancel}</button>
             <PrimaryButton style={{ opacity:editBusy?0.7:1 }} onClick={handleEdit} disabled={editBusy}>
-              {editBusy ? "Saving…" : "Save Changes"}
+              {editBusy ? "Saving…" : t.save}
             </PrimaryButton>
           </div>
         </Modal>
       )}
 
       {showAdd && (
-        <Modal title="Log an Expense" onClose={() => setShowAdd(false)}>
+        <Modal title={t.logExpense} onClose={() => setShowAdd(false)}>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Description</label>
+            <label style={S.label}>{t.description}</label>
             <input style={S.input} value={form.description}
               onChange={e => setForm({...form, description:e.target.value})}
               placeholder="e.g. Valentine's Day supplies"/>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             <div style={S.fieldGroup}>
-              <label style={S.label}>Amount ($)</label>
+              <label style={S.label}>{t.amount} ($)</label>
               <input style={S.input} type="number" step="0.01" min="0" value={form.amount}
                 onChange={e => setForm({...form, amount:e.target.value})} placeholder="0.00"/>
             </div>
             <div style={S.fieldGroup}>
-              <label style={S.label}>Date</label>
+              <label style={S.label}>{t.date}</label>
               <input style={S.input} type="date" value={form.date}
                 onChange={e => setForm({...form, date:e.target.value})}/>
             </div>
           </div>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Category</label>
+            <label style={S.label}>{t.category}</label>
             <select style={S.input} value={form.category}
               onChange={e => setForm({...form, category:e.target.value})}>
               {CATEGORIES.map(c => <option key={c}>{c}</option>)}
@@ -990,9 +1033,9 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
             </div>
           )}
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>Cancel</button>
+            <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>{t.cancel}</button>
             <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={handleSubmit} disabled={busy}>
-              {busy ? "Submitting…" : "Submit"}
+              {busy ? "Submitting…" : t.submit}
             </PrimaryButton>
           </div>
         </Modal>
@@ -1002,7 +1045,7 @@ function ExpensesPanel({ expenses, currentUser, showToast, reload, summary }) {
 }
 
 // ─── Approvals Panel ─────────────────────────────────────────────────────────
-function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
+function ApprovalsPanel({ expenses, users, currentUser, showToast, reload, t }) {
   const isMobile = useIsMobile();
   const pending = expenses.filter(e => e.status==="pending");
   const history = expenses.filter(e => e.status!=="pending").sort((a,b) => new Date(b.date)-new Date(a.date));
@@ -1011,13 +1054,13 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
 
   const approve = async (id) => {
     setBusy(id+"-approve");
-    try { await api.approveExpense(id); showToast("Expense approved and funds deducted!"); reload(); }
+    try { await api.approveExpense(id); showToast(t.expenseApproved); reload(); }
     catch (err) { showToast(err.message, "error"); }
     finally { setBusy(null); }
   };
   const reject = async (id) => {
     setBusy(id+"-reject");
-    try { await api.rejectExpense(id); showToast("Expense rejected.", "error"); reload(); }
+    try { await api.rejectExpense(id); showToast(t.expenseRejected, "error"); reload(); }
     catch (err) { showToast(err.message, "error"); }
     finally { setBusy(null); }
   };
@@ -1026,19 +1069,19 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
     <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
       <div style={S.pageHeader}>
         <div>
-          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Approvals Queue</h2>
-          <p style={S.pageSubtitle}>{pending.length} pending reimbursement{pending.length!==1?"s":""}</p>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>{t.approvals}</h2>
+          <p style={S.pageSubtitle}>{pending.length} {t.pendingReimbursements}</p>
         </div>
       </div>
 
       {pending.length===0 ? (
         <div style={S.emptyState}>
           <div style={{ fontSize:48, marginBottom:12 }}>🎉</div>
-          <p style={{ color:"#6b7280" }}>All caught up! No pending approvals.</p>
+          <p style={{ color:"#6b7280" }}>{t.allCaughtUp}</p>
         </div>
       ) : (
         <div style={{ marginBottom:32 }}>
-          <h3 style={{ ...S.sectionLabel, marginBottom:12 }}>Pending Reimbursements</h3>
+          <h3 style={{ ...S.sectionLabel, marginBottom:12 }}>{t.pendingReimbursements}</h3>
           {pending.map(e => (
             <div key={e.id} style={S.approvalCard}>
               <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
@@ -1048,7 +1091,7 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
                 <div style={{ flex:1 }}>
                   <div style={S.expenseDesc}>{e.description}</div>
                   <div style={S.expenseMeta}>
-                    Submitted by <strong>{e.submitted_by_name || "Unknown"}</strong> · {e.date?.slice(0,10)}
+                    {t.submittedBy} <strong>{e.submitted_by_name || "Unknown"}</strong> · {e.date?.slice(0,10)}
                   </div>
                   <div style={{ marginTop:4, color:"#7b2fbe", fontWeight:700, fontSize:16 }}>
                     ${parseFloat(e.amount).toFixed(2)}
@@ -1057,10 +1100,10 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
               </div>
               <div style={{ display:"flex", gap:8, marginTop:12, justifyContent:"flex-end" }}>
                 <button style={{ ...S.btnReject, opacity:busy?0.6:1 }} onClick={() => reject(e.id)} disabled={!!busy}>
-                  <Icon name="x" size={15}/> {busy===e.id+"-reject" ? "…" : "Reject"}
+                  <Icon name="x" size={15}/> {busy===e.id+"-reject" ? "…" : t.reject}
                 </button>
                 <button style={{ ...S.btnApprove, opacity:busy?0.6:1 }} onClick={() => approve(e.id)} disabled={!!busy}>
-                  <Icon name="check" size={15}/> {busy===e.id+"-approve" ? "…" : "Approve"}
+                  <Icon name="check" size={15}/> {busy===e.id+"-approve" ? "…" : t.approveReimburse}
                 </button>
               </div>
             </div>
@@ -1070,7 +1113,7 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
 
       {history.length > 0 && (
         <div>
-          <h3 style={{ ...S.sectionLabel, marginBottom:12 }}>Approval History</h3>
+          <h3 style={{ ...S.sectionLabel, marginBottom:12 }}>{t.approvalHistory}</h3>
           <div style={S.card}>
             {history.map(e => (
               <div key={e.id}
@@ -1083,7 +1126,7 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
                 </div>
                 <div style={{ display:"flex", gap:12, alignItems:"center" }}>
                   <span style={S.expenseAmt}>-${parseFloat(e.amount).toFixed(2)}</span>
-                  <StatusChip status={e.status}/>
+                  <StatusChip status={e.status} t={t}/>
                 </div>
               </div>
             ))}
@@ -1095,7 +1138,7 @@ function ApprovalsPanel({ expenses, users, currentUser, showToast, reload }) {
 }
 
 // ─── Accounts Panel ───────────────────────────────────────────────────────────
-function AccountsPanel({ users, currentUser, showToast, reload, className, onReset }) {
+function AccountsPanel({ users, currentUser, showToast, reload, className, onReset, t, language, setLanguage }) {
   const isMobile = useIsMobile();
   const [showAdd, setShowAdd]           = useState(false);
   const [resetId, setResetId]           = useState(null);
@@ -1129,18 +1172,18 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
     try {
       await api.resetYear({ class_name: newClassName });
       closeYearReset();
-      showToast("New school year started successfully!");
+      showToast(t.newSchoolYear + "!");
       onReset(newClassName);
     } catch (err) { showToast(err.message, "error"); }
     finally { setYearBusy(false); }
   };
 
   const handleCreate = async () => {
-    if (!form.name || !form.email || !form.password) { showToast("All fields required.", "error"); return; }
+    if (!form.name || !form.email || !form.password) { showToast(t.allFieldsRequired, "error"); return; }
     setBusy(true);
     try {
       await api.createUser(form);
-      showToast("Account created!");
+      showToast(t.accountCreated);
       setShowAdd(false);
       setForm({ name:"", email:"", password:"", role:"mom" });
       reload();
@@ -1149,11 +1192,11 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
   };
 
   const handleReset = async (id) => {
-    if (!newPw || newPw.length < 8) { showToast("Password must be at least 8 characters.", "error"); return; }
+    if (!newPw || newPw.length < 8) { showToast(t.min8chars, "error"); return; }
     setBusy(true);
     try {
       await api.resetPassword(id, newPw);
-      showToast("Password reset successfully!");
+      showToast(t.passwordReset);
       setResetId(null); setNewPw("");
     } catch (err) { showToast(err.message, "error"); }
     finally { setBusy(false); }
@@ -1162,14 +1205,14 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
   const handleUnlock = async (u) => {
     try {
       await api.unlockUser(u.id);
-      showToast(`Account unlocked for ${u.name}`);
+      showToast(`${t.accountUnlocked} (${u.name})`);
       reload();
     } catch (err) { showToast(err.message, "error"); }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this account?")) return;
-    try { await api.deleteUser(id); showToast("Account removed."); reload(); }
+    try { await api.deleteUser(id); showToast(t.accountRemoved); reload(); }
     catch (err) { showToast(err.message, "error"); }
   };
 
@@ -1177,7 +1220,7 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
     setBackupBusy(true);
     try {
       await api.createBackup();
-      showToast("Backup created successfully!");
+      showToast(t.backupCreated);
       loadBackups();
     } catch (err) { showToast(err.message, "error"); }
     finally { setBackupBusy(false); }
@@ -1187,7 +1230,7 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
     setRestoreBusy(true);
     try {
       await api.restoreBackup(restoreFile.filename);
-      showToast("Database restored!");
+      showToast(t.databaseRestored);
       setRestoreStep(0);
       setTimeout(() => {
         localStorage.removeItem("cf_token");
@@ -1200,11 +1243,11 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
     <div style={{ ...S.page, ...(isMobile ? { padding:"16px" } : {}) }}>
       <div style={{ ...S.pageHeader, ...(isMobile ? { marginBottom:16 } : {}) }}>
         <div>
-          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>Admin</h2>
-          <p style={S.pageSubtitle}>Admin Panel</p>
+          <h2 style={{ ...S.pageTitle, ...(isMobile ? { fontSize:20 } : {}) }}>{t.admin}</h2>
+          <p style={S.pageSubtitle}>{t.adminPanel}</p>
         </div>
         <PrimaryButton style={{ background:"#ef4444" }} onClick={openYearReset}>
-          <Icon name="refresh" size={16}/> New School Year
+          <Icon name="refresh" size={16}/> {t.newSchoolYear}
         </PrimaryButton>
       </div>
 
@@ -1212,10 +1255,10 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <Icon name="users" size={18}/>
-            <h3 style={{ ...S.cardTitle, margin:0 }}>Accounts</h3>
+            <h3 style={{ ...S.cardTitle, margin:0 }}>{t.accounts}</h3>
           </div>
           <PrimaryButton onClick={() => setShowAdd(true)}>
-            <Icon name="plus" size={16}/> Add Account
+            <Icon name="plus" size={16}/> {t.addAccount}
           </PrimaryButton>
         </div>
         {users.map(u => {
@@ -1239,11 +1282,11 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
               </div>
               <div style={{ display:"flex", gap:8, flexShrink:0 }}>
                 {isLocked && (
-                  <button style={{ ...S.iconBtn, color:"#f59e0b" }} onClick={() => handleUnlock(u)} title="Unlock Account">
+                  <button style={{ ...S.iconBtn, color:"#f59e0b" }} onClick={() => handleUnlock(u)} title={t.unlock}>
                     <Icon name="unlock" size={15}/>
                   </button>
                 )}
-                <button style={S.iconBtn} onClick={() => { setResetId(u.id); setNewPw(""); }} title="Reset Password">
+                <button style={S.iconBtn} onClick={() => { setResetId(u.id); setNewPw(""); }} title={t.resetPassword}>
                   <Icon name="key" size={15}/>
                 </button>
                 {u.id !== currentUser.id && (
@@ -1258,54 +1301,54 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
       </div>
 
       {showAdd && (
-        <Modal title="Create Account" onClose={() => setShowAdd(false)}>
+        <Modal title={t.createAccount} onClose={() => setShowAdd(false)}>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Full Name</label>
+            <label style={S.label}>{t.fullName}</label>
             <input style={S.input} value={form.name}
               onChange={e => setForm({...form, name: e.target.value})}/>
           </div>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Email Address</label>
+            <label style={S.label}>{t.emailAddress}</label>
             <input style={S.input} type="email" value={form.email}
               onChange={e => setForm({...form, email: e.target.value})}/>
           </div>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Temporary Password</label>
+            <label style={S.label}>{t.temporaryPassword}</label>
             <input style={S.input} type="password" value={form.password}
               onChange={e => setForm({...form, password: e.target.value})}/>
-            <PasswordChecklist password={form.password}/>
+            <PasswordChecklist password={form.password} t={t}/>
           </div>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Role</label>
+            <label style={S.label}>{t.role}</label>
             <select style={S.input} value={form.role} onChange={e => setForm({...form, role:e.target.value})}>
-              <option value="mom">Classroom Mom</option>
+              <option value="mom">{t.classroomMom}</option>
               <option value="admin">Admin</option>
             </select>
           </div>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>Cancel</button>
+            <button style={S.btnSecondary} onClick={() => setShowAdd(false)}>{t.cancel}</button>
             <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={handleCreate} disabled={busy}>
-              {busy ? "Creating…" : "Create Account"}
+              {busy ? "Creating…" : t.createAccount}
             </PrimaryButton>
           </div>
         </Modal>
       )}
 
       {resetId && (
-        <Modal title="Reset Password" onClose={() => setResetId(null)}>
+        <Modal title={t.resetPassword} onClose={() => setResetId(null)}>
           <p style={{ ...S.meta, marginBottom:12 }}>
-            New password for: <strong>{users.find(u=>u.id===resetId)?.name}</strong>
+            {t.newPassword}: <strong>{users.find(u=>u.id===resetId)?.name}</strong>
           </p>
           <div style={S.fieldGroup}>
-            <label style={S.label}>New Password</label>
+            <label style={S.label}>{t.newPassword}</label>
             <input style={S.input} type="password" value={newPw}
               onChange={e => setNewPw(e.target.value)} placeholder="Enter new password"/>
-            <PasswordChecklist password={newPw}/>
+            <PasswordChecklist password={newPw} t={t}/>
           </div>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={() => setResetId(null)}>Cancel</button>
+            <button style={S.btnSecondary} onClick={() => setResetId(null)}>{t.cancel}</button>
             <PrimaryButton style={{ opacity:busy?0.7:1 }} onClick={() => handleReset(resetId)} disabled={busy}>
-              {busy ? "Resetting…" : "Reset Password"}
+              {busy ? "Resetting…" : t.resetPassword}
             </PrimaryButton>
           </div>
         </Modal>
@@ -1316,12 +1359,12 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <Icon name="database" size={18} />
-            <h3 style={{ ...S.cardTitle, margin:0 }}>Backup &amp; Restore</h3>
+            <h3 style={{ ...S.cardTitle, margin:0 }}>{t.backupRestore}</h3>
           </div>
           <PrimaryButton onClick={handleCreateBackup} disabled={backupBusy}
             style={{ opacity:backupBusy?0.7:1 }}>
             <Icon name="save" size={15}/>
-            {backupBusy ? " Creating…" : " Create Backup Now"}
+            {backupBusy ? " Creating…" : ` ${t.createBackup}`}
           </PrimaryButton>
         </div>
 
@@ -1337,7 +1380,7 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
               <button
                 style={{ ...S.iconBtn, color:"#f59e0b", padding:"6px 12px", fontSize:13, fontWeight:700, gap:6, display:"flex", alignItems:"center" }}
                 onClick={() => { setRestoreFile(b); setRestoreStep(1); setRestoreText(""); }}>
-                <Icon name="refresh" size={14}/> Restore
+                <Icon name="refresh" size={14}/> {t.restore}
               </button>
             </div>
           ))
@@ -1346,31 +1389,30 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
 
       {/* Restore confirmation — step 1: warning */}
       {restoreStep === 1 && restoreFile && (
-        <Modal title="Restore Database" onClose={() => setRestoreStep(0)}>
+        <Modal title={t.restore} onClose={() => setRestoreStep(0)}>
           <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
             <Icon name="alert" size={16}/>
-            <strong>WARNING: This cannot be undone.</strong>
+            <strong>{t.restoreWarning}</strong>
           </div>
           <p style={{ ...S.meta, marginBottom:12, lineHeight:1.6 }}>
-            This will replace <strong>ALL current data</strong> — including students, expenses, and settings —
-            with the data from <strong>{restoreFile.date}</strong>.
+            {t.restoreWarning} {t.date}: <strong>{restoreFile.date}</strong>.
           </p>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={() => setRestoreStep(0)}>Cancel</button>
-            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setRestoreStep(2)}>Continue</PrimaryButton>
+            <button style={S.btnSecondary} onClick={() => setRestoreStep(0)}>{t.cancel}</button>
+            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setRestoreStep(2)}>{t.continue}</PrimaryButton>
           </div>
         </Modal>
       )}
 
       {/* Restore confirmation — step 2: type RESTORE */}
       {restoreStep === 2 && restoreFile && (
-        <Modal title="Confirm Restore" onClose={() => setRestoreStep(0)}>
+        <Modal title={t.confirm} onClose={() => setRestoreStep(0)}>
           <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
             <Icon name="alert" size={16}/>
-            <span>All current data will be permanently overwritten.</span>
+            <span>{t.restoreWarning}</span>
           </div>
           <p style={{ ...S.meta, marginBottom:12 }}>
-            Type <strong>RESTORE</strong> to confirm restoring from <strong>{restoreFile.date}</strong>.
+            {t.typeRestore} — <strong>{restoreFile.date}</strong>.
           </p>
           <div style={S.fieldGroup}>
             <input style={S.input} value={restoreText}
@@ -1378,59 +1420,57 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
               placeholder="Type RESTORE here" autoFocus/>
           </div>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={() => setRestoreStep(0)}>Cancel</button>
+            <button style={S.btnSecondary} onClick={() => setRestoreStep(0)}>{t.cancel}</button>
             <PrimaryButton
               style={{ background:"#ef4444", opacity:(restoreText==="RESTORE" && !restoreBusy)?1:0.4 }}
               onClick={handleRestore}
               disabled={restoreText !== "RESTORE" || restoreBusy}>
-              {restoreBusy ? "Restoring…" : "Restore Database"}
+              {restoreBusy ? "Restoring…" : t.restore}
             </PrimaryButton>
           </div>
         </Modal>
       )}
 
       {yearStep === 1 && (
-        <Modal title="New School Year Reset" onClose={closeYearReset}>
+        <Modal title={t.newSchoolYear} onClose={closeYearReset}>
           <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
             <Icon name="alert" size={16}/>
-            <strong>This action cannot be undone.</strong>
+            <strong>{t.newYearWarning}</strong>
           </div>
           <p style={{ ...S.meta, marginBottom:8, lineHeight:1.6 }}>
-            This will <strong>mark all students as unpaid</strong> and <strong>delete all expenses</strong>.
-            Student records will be kept. User accounts will be kept.
-            This cannot be undone.
+            {t.newYearWarning}
           </p>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={closeYearReset}>Cancel</button>
-            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setYearStep(2)}>Continue</PrimaryButton>
+            <button style={S.btnSecondary} onClick={closeYearReset}>{t.cancel}</button>
+            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setYearStep(2)}>{t.continue}</PrimaryButton>
           </div>
         </Modal>
       )}
 
       {yearStep === 2 && (
-        <Modal title="New Class Name" onClose={closeYearReset}>
-          <p style={{ ...S.meta, marginBottom:12 }}>Enter the name for the new school year class.</p>
+        <Modal title={t.newClassName} onClose={closeYearReset}>
+          <p style={{ ...S.meta, marginBottom:12 }}>{t.newYearStep2}</p>
           <div style={S.fieldGroup}>
-            <label style={S.label}>Class Name</label>
+            <label style={S.label}>{t.newClassName}</label>
             <input style={S.input} value={newClassName}
               onChange={e => setNewClassName(e.target.value)}
               placeholder="e.g. Pierwsza Klasa"/>
           </div>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={() => setYearStep(1)}>Back</button>
-            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setYearStep(3)} disabled={!newClassName.trim()}>Continue</PrimaryButton>
+            <button style={S.btnSecondary} onClick={() => setYearStep(1)}>{t.back}</button>
+            <PrimaryButton style={{ background:"#ef4444" }} onClick={() => setYearStep(3)} disabled={!newClassName.trim()}>{t.continue}</PrimaryButton>
           </div>
         </Modal>
       )}
 
       {yearStep === 3 && (
-        <Modal title="Confirm Reset" onClose={closeYearReset}>
+        <Modal title={t.confirm} onClose={closeYearReset}>
           <div style={{ ...S.infoBox, background:"#fef2f2", borderColor:"#fca5a5", color:"#b91c1c", marginBottom:16 }}>
             <Icon name="alert" size={16}/>
-            <span>All students will be marked unpaid and all expenses deleted. This cannot be undone.</span>
+            <span>{t.newYearWarning}</span>
           </div>
           <p style={{ ...S.meta, marginBottom:12 }}>
-            Type <strong>RESET</strong> to confirm and start the new school year as <strong>{newClassName}</strong>.
+            {t.newYearStep3} — <strong>{newClassName}</strong>.
           </p>
           <div style={S.fieldGroup}>
             <input style={S.input} value={confirmText}
@@ -1438,12 +1478,12 @@ function AccountsPanel({ users, currentUser, showToast, reload, className, onRes
               placeholder="Type RESET here"/>
           </div>
           <div style={S.modalBtns}>
-            <button style={S.btnSecondary} onClick={closeYearReset}>Cancel</button>
+            <button style={S.btnSecondary} onClick={closeYearReset}>{t.cancel}</button>
             <PrimaryButton
               style={{ background:"#ef4444", opacity:(confirmText==="RESET" && !yearBusy)?1:0.4 }}
               onClick={handleYearReset}
               disabled={confirmText !== "RESET" || yearBusy}>
-              {yearBusy ? "Resetting…" : "Confirm Reset"}
+              {yearBusy ? "Resetting…" : t.confirm}
             </PrimaryButton>
           </div>
         </Modal>
@@ -1471,13 +1511,13 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-function StatusChip({ status }) {
+function StatusChip({ status, t }) {
   const map = {
-    approved: { bg:"#d1fae5", color:"#065f46", label:"Approved" },
-    pending:  { bg:"#ede9fe", color:"#5b21b6", label:"Pending" },
-    rejected: { bg:"#fee2e2", color:"#991b1b", label:"Rejected" },
-    paid:     { bg:"#d1fae5", color:"#065f46", label:"Paid" },
-    unpaid:   { bg:"#fee2e2", color:"#991b1b", label:"Unpaid" },
+    approved: { bg:"#d1fae5", color:"#065f46", label: t ? t.approved : "Approved" },
+    pending:  { bg:"#ede9fe", color:"#5b21b6", label: t ? t.pending  : "Pending"  },
+    rejected: { bg:"#fee2e2", color:"#991b1b", label: t ? t.rejected : "Rejected" },
+    paid:     { bg:"#d1fae5", color:"#065f46", label: t ? t.paid     : "Paid"     },
+    unpaid:   { bg:"#fee2e2", color:"#991b1b", label: t ? t.unpaid   : "Unpaid"   },
   };
   const s = map[status] || map.pending;
   return (
