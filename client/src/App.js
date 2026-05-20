@@ -257,7 +257,7 @@ function LanguageToggle({ language, setLanguage }) {
     localStorage.setItem('cf_language', newLang);
   };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
       <span style={{ fontSize: 14, color: "#fff" }}>🇺🇸</span>
       <div onClick={toggle} style={{
         width: 36,
