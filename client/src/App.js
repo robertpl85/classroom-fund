@@ -655,15 +655,26 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
   const [showSearch, setShowSearch] = useState(true);
   const lastScrollY = useRef(0);
 
-  const handleScroll = useCallback((e) => {
-    const currentScrollY = e.target.scrollTop;
-    if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
-      setShowSearch(false);
-    } else if (currentScrollY < lastScrollY.current) {
-      setShowSearch(true);
-    }
-    lastScrollY.current = currentScrollY;
-  }, []);
+  useEffect(() => {
+    if (!isMobile) return;
+    // The <main> element is the real scroll container on mobile
+    // (html/body have overflow:hidden so window.scrollY stays 0)
+    const container = document.querySelector('main');
+    if (!container) return;
+
+    const handleScroll = () => {
+      const currentScrollY = container.scrollTop;
+      if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
+        setShowSearch(false);
+      } else if (currentScrollY < lastScrollY.current) {
+        setShowSearch(true);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isMobile]);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -757,7 +768,7 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
       )}
 
       {isMobile ? (
-        <div onScroll={handleScroll} style={{ overflowY:"auto" }}>
+        <div>
           {filtered.length===0 ? (
             <p style={S.empty}>{t.noStudentsFound}</p>
           ) : filtered.map(s => (
