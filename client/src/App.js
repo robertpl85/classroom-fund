@@ -126,6 +126,7 @@ export default function App() {
 
   const [language, setLanguage] = useState(() => localStorage.getItem('cf_language') || 'en');
   const t = translations[language];
+  const mainRef = useRef(null);
 
   const [students, setStudents]   = useState([]);
   const [expenses, setExpenses]   = useState([]);
@@ -208,7 +209,7 @@ export default function App() {
       <Sidebar currentUser={currentUser} view={view} setView={setView}
         pendingCount={currentUser.role === "admin" ? pendingCount : 0}
         onLogout={handleLogout} className={className} isMobile={isMobile} t={t} language={language} setLanguage={setLanguage} />
-      <main style={{ ...S.main, ...(isMobile ? { paddingTop:41, paddingBottom:65 } : {}) }}>
+      <main ref={mainRef} style={{ ...S.main, ...(isMobile ? { paddingTop:41, paddingBottom:65 } : {}) }}>
         {/* keyed wrapper triggers fadeIn animation on every view change */}
         <div key={view} style={{ animation:"fadeIn 0.3s ease forwards" }}>
           {view === "dashboard" && (
@@ -217,7 +218,7 @@ export default function App() {
           )}
           {view === "students" && (
             <StudentsPanel students={students} currentUser={currentUser}
-              showToast={showToast} reload={loadAll} t={t} />
+              showToast={showToast} reload={loadAll} t={t} mainRef={mainRef} />
           )}
           {view === "expenses" && (
             <ExpensesPanel expenses={expenses} currentUser={currentUser}
@@ -643,7 +644,7 @@ function StatCard({ icon, label, value, color, bg, note }) {
 }
 
 // ─── Students Panel ───────────────────────────────────────────────────────────
-function StudentsPanel({ students, currentUser, showToast, reload, t }) {
+function StudentsPanel({ students, currentUser, showToast, reload, t, mainRef }) {
   const isMobile = useIsMobile();
   const [search, setSearch]       = useState("");
   const [showAdd, setShowAdd]     = useState(false);
@@ -652,6 +653,26 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
   const [form, setForm]           = useState({ name:"", parent_email:"", parent_phone:"", paid:false, amount:50 });
   const [busy, setBusy]           = useState(false);
   const [emailValid, setEmailValid] = useState(null);
+  const [showSearch, setShowSearch] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    if (!isMobile || !mainRef?.current) return;
+    const el = mainRef.current;
+    const handleScroll = () => {
+      const currentY = el.scrollTop;
+      const diff = currentY - lastScrollY.current;
+      if (diff > 5 && currentY > 80) {
+        setShowSearch(false);
+      } else if (diff < -5) {
+        setShowSearch(true);
+      }
+      lastScrollY.current = currentY;
+    };
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [isMobile, mainRef]);
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const filtered = students.filter(s => {
@@ -707,45 +728,41 @@ function StudentsPanel({ students, currentUser, showToast, reload, t }) {
         )}
       </div>
 
-      <div style={{
-        position: isMobile ? "sticky" : "static",
-        top: isMobile ? 0 : "auto",
-        background: "#f1f5f9",
-        zIndex: 10,
-        paddingTop: isMobile ? 8 : 0,
-        paddingBottom: isMobile ? 8 : 0,
-        marginBottom: 16,
-      }}>
-        {isMobile ? (
-          /* Mobile: search above filters */
-          <>
-            <input
-              style={{ ...S.input, width:"100%", marginBottom:10 }}
-              placeholder={t.searchStudents}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            <div style={S.filterBtns}>
-              {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
-                <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
-                  onClick={() => setFilter(f.id)}>{f.label}</button>
-              ))}
-            </div>
-          </>
-        ) : (
-          /* Desktop: search left, filters right */
-          <div style={S.filterBar}>
-            <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder={t.searchStudents}
-              value={search} onChange={e => setSearch(e.target.value)}/>
-            <div style={S.filterBtns}>
-              {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
-                <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
-                  onClick={() => setFilter(f.id)}>{f.label}</button>
-              ))}
-            </div>
+      {isMobile ? (
+        /* Mobile: animated hide/show on scroll */
+        <div style={{
+          overflow: "hidden",
+          maxHeight: showSearch ? "150px" : "0px",
+          opacity: showSearch ? 1 : 0,
+          transition: "max-height 0.35s ease, opacity 0.25s ease",
+          marginBottom: showSearch ? 12 : 0,
+        }}>
+          <input
+            style={{ ...S.input, width:"100%", marginBottom:10 }}
+            placeholder={t.searchStudents}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <div style={S.filterBtns}>
+            {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
+              <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
+                onClick={() => setFilter(f.id)}>{f.label}</button>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        /* Desktop: search left, filters right, always visible */
+        <div style={{ ...S.filterBar, marginBottom:12 }}>
+          <input style={{ ...S.input, flex:1, minWidth:0 }} placeholder={t.searchStudents}
+            value={search} onChange={e => setSearch(e.target.value)}/>
+          <div style={S.filterBtns}>
+            {[{id:"all",label:t.all},{id:"paid",label:t.paid},{id:"unpaid",label:t.unpaid}].map(f => (
+              <button key={f.id} style={{ ...S.filterBtn, ...(filter===f.id ? S.filterActive : {}) }}
+                onClick={() => setFilter(f.id)}>{f.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isMobile ? (
         <div>
